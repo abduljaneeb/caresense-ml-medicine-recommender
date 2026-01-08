@@ -24,6 +24,12 @@
     <a href="{{ url_for('diseases_page') }}" class="{% if request.endpoint=='diseases_page' %}active{% endif %}">
       <i class="fas fa-bacterium"></i> Diseases
     </a>
+    <a href="{{ url_for('quiz') }}" class="{% if request.endpoint=='quiz' %}active{% endif %}">
+      <i class="fas fa-clipboard-list"></i> Quiz
+    </a>
+    <a href="{{ url_for('leaderboard') }}" class="{% if request.endpoint=='leaderboard' %}active{% endif %}">
+      <i class="fas fa-ranking-star"></i> Leaderboard
+    </a>
     <a href="{{ url_for('awareness') }}" class="{% if request.endpoint in ('awareness','result_page') %}active{% endif %}">
       <i class="fas fa-circle-info"></i> About
     </a>
@@ -35,6 +41,8 @@
   <a href="{{ url_for('index') }}"><i class="fas fa-stethoscope"></i> Diagnose</a>
   <a href="{{ url_for('analytics') }}"><i class="fas fa-chart-bar"></i> Analytics</a>
   <a href="{{ url_for('diseases_page') }}"><i class="fas fa-bacterium"></i> Diseases</a>
+  <a href="{{ url_for('quiz') }}"><i class="fas fa-clipboard-list"></i> Quiz</a>
+  <a href="{{ url_for('leaderboard') }}"><i class="fas fa-ranking-star"></i> Leaderboard</a>
   <a href="{{ url_for('awareness') }}"><i class="fas fa-circle-info"></i> About</a>
 </div>
 
