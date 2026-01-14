@@ -1,5 +1,5 @@
 
-import os, ast, pickle, io, json, datetime, re
+import os, ast, pickle, io, json, datetime, re, sqlite3
 import pandas as pd
 import numpy as np
 from flask import (Flask, render_template, request, jsonify, send_file, session)
@@ -26,6 +26,28 @@ BASE_DIR  = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, 'models')
 DATA_DIR  = os.path.join(BASE_DIR, 'data')
 GRAPH_DIR = os.path.join(BASE_DIR, 'graphs')
+
+DB_PATH = os.path.join(DATA_DIR, 'caresense_votes.db')
+
+def init_db():
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS votes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                disease TEXT,
+                accurate BOOLEAN,
+                stars INTEGER,
+                comment TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+init_db()
+
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 # ── Disease Name Alias Map ─────────────────────────────────────────────────────
 # FIX #1 & #2: Map training disease names → lookup file disease names
@@ -594,6 +616,61 @@ def serve_graph(filename):
 @app.route('/awareness')
 def awareness():
     return render_template('awareness.html')
+
+@app.route('/quiz')
+def quiz():
+    return render_template('quiz.html')
+
+@app.route('/vote', methods=['POST'])
+def vote():
+    data = request.get_json(silent=True) or {}
+    disease = data.get('disease')
+    accurate = data.get('accurate')
+    stars = data.get('stars', 0)
+    comment = data.get('comment', '')
+
+    if not disease or accurate is None:
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    try:
+        with get_db() as conn:
+            conn.execute(
+                'INSERT INTO votes (disease, accurate, stars, comment) VALUES (?, ?, ?, ?)',
+                (disease, accurate, stars, comment)
+            )
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/votes/stats')
+def votes_stats():
+    try:
+        with get_db() as conn:
+            rows = conn.execute('''
+                SELECT disease, 
+                       COUNT(*) as total_votes,
+                       SUM(CASE WHEN accurate = 1 THEN 1 ELSE 0 END) as accurate_votes,
+                       AVG(stars) as avg_stars
+                FROM votes
+                GROUP BY disease
+                ORDER BY accurate_votes DESC, total_votes DESC
+            ''').fetchall()
+            
+            stats = []
+            for r in rows:
+                stats.append({
+                    'disease': r['disease'],
+                    'total_votes': r['total_votes'],
+                    'accuracy_pct': round((r['accurate_votes'] / r['total_votes']) * 100, 1) if r['total_votes'] > 0 else 0,
+                    'avg_stars': round(r['avg_stars'], 1) if r['avg_stars'] else 0
+                })
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/leaderboard')
+def leaderboard():
+    return render_template('leaderboard.html')
 
 @app.route('/diseases')
 def diseases_page():
