@@ -279,6 +279,7 @@
 {% block scripts %}
 <script>
 const BODY_REGIONS = {{ body_regions | tojson }};
+const ALL_SYMS = {{ symptoms | tojson }};
 
 // ── State ────────────────────────────────────────────────
 let selected        = new Set();
