@@ -379,8 +379,54 @@
     </div>
   </div>
 
+  {# ── Community Voting Card ─────────────────────────────────── #}
+  <div class="card" style="margin-top:1.5rem; text-align:center">
+    <h3 style="font-family:var(--font-display); font-size:1.15rem; color:var(--text-1); margin-bottom:.5rem">Help improve CareSense</h3>
+    <p style="font-size:.85rem; color:var(--text-3); margin-bottom:1.5rem">Was this AI prediction accurate based on your actual diagnosis?</p>
+    
+    <div id="voteFormWrap">
+      <div style="display:flex; justify-content:center; gap:1rem; margin-bottom:1.5rem">
+        <button class="btn btn-ghost" id="voteYesBtn" onclick="selectAccuracy(true)" style="flex:1; max-width:140px; border-color:var(--green); color:var(--green)">
+          <i class="fas fa-thumbs-up"></i> Yes, accurate
+        </button>
+        <button class="btn btn-ghost" id="voteNoBtn" onclick="selectAccuracy(false)" style="flex:1; max-width:140px; border-color:var(--coral); color:var(--coral)">
+          <i class="fas fa-thumbs-down"></i> No, inaccurate
+        </button>
+      </div>
+      
+      <div id="voteDetails" style="display:none; max-width:400px; margin:0 auto; text-align:left">
+        <div style="margin-bottom:1rem">
+          <label style="font-size:.8rem; font-weight:700; color:var(--text-2); display:block; margin-bottom:.5rem">Rate your experience</label>
+          <div id="starRating" style="display:flex; gap:.25rem; font-size:1.2rem; color:var(--border-md); cursor:pointer">
+            <i class="fas fa-star star-btn" data-val="1" onclick="setStars(1)"></i>
+            <i class="fas fa-star star-btn" data-val="2" onclick="setStars(2)"></i>
+            <i class="fas fa-star star-btn" data-val="3" onclick="setStars(3)"></i>
+            <i class="fas fa-star star-btn" data-val="4" onclick="setStars(4)"></i>
+            <i class="fas fa-star star-btn" data-val="5" onclick="setStars(5)"></i>
+          </div>
+        </div>
+        
+        <div style="margin-bottom:1.5rem">
+          <label style="font-size:.8rem; font-weight:700; color:var(--text-2); display:block; margin-bottom:.5rem">Comment (optional)</label>
+          <textarea id="voteComment" class="search-input" style="padding:.75rem; min-height:80px; resize:vertical; font-size:.85rem" placeholder="Tell us more about your result..."></textarea>
+        </div>
+        
+        <button class="btn btn-primary" style="width:100%; justify-content:center" onclick="submitVote()" id="submitVoteBtn">
+          Submit Feedback
+        </button>
+      </div>
+    </div>
+    
+    <div id="voteSuccess" style="display:none; flex-direction:column; color:var(--green); align-items:center; justify-content:center; gap:.5rem; font-weight:600; padding:1rem 0">
+      <div style="font-size:1.1rem"><i class="fas fa-circle-check" style="font-size:1.5rem; vertical-align:middle; margin-right:.5rem"></i> Thank you! Your feedback helps improve our AI.</div>
+      <a href="{{ url_for('leaderboard') }}" class="btn btn-ghost" style="margin-top:1rem; font-size:.8rem; padding:.5rem 1rem">
+        <i class="fas fa-ranking-star"></i> View Leaderboard
+      </a>
+    </div>
+  </div>
+
   {# ── Bottom action row ─────────────────────────────────────── #}
-  <div class="result-bottom-bar">
+  <div class="result-bottom-bar" style="margin-top:1.5rem">
     <a href="{{ url_for('index') }}" class="btn btn-ghost">
       <i class="fas fa-arrow-left"></i> New Diagnosis
     </a>
@@ -766,6 +812,66 @@ function toast(msg, type='info') {
   document.body.appendChild(t);
   requestAnimationFrame(() => { requestAnimationFrame(() => t.classList.add('show')); });
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3800);
+}
+
+// ── Voting Logic ─────────────────────────────────────────────
+let voteData = {
+  disease: RESULT.disease,
+  accurate: null,
+  stars: 0,
+  comment: ''
+};
+
+function selectAccuracy(isAccurate) {
+  voteData.accurate = isAccurate;
+  document.getElementById('voteYesBtn').style.background = isAccurate ? 'var(--green)' : 'transparent';
+  document.getElementById('voteYesBtn').style.color = isAccurate ? '#fff' : 'var(--green)';
+  
+  document.getElementById('voteNoBtn').style.background = !isAccurate ? 'var(--coral)' : 'transparent';
+  document.getElementById('voteNoBtn').style.color = !isAccurate ? '#fff' : 'var(--coral)';
+  
+  document.getElementById('voteDetails').style.display = 'block';
+}
+
+function setStars(val) {
+  voteData.stars = val;
+  document.querySelectorAll('.star-btn').forEach(el => {
+    if (parseInt(el.dataset.val) <= val) {
+      el.style.color = '#F59E0B'; // Amber
+    } else {
+      el.style.color = 'var(--border-md)';
+    }
+  });
+}
+
+async function submitVote() {
+  if (voteData.accurate === null) return;
+  voteData.comment = document.getElementById('voteComment').value.trim();
+  
+  document.getElementById('submitVoteBtn').disabled = true;
+  document.getElementById('submitVoteBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+  
+  try {
+    const res = await fetch('/vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(voteData)
+    });
+    
+    if (res.ok) {
+      document.getElementById('voteFormWrap').style.display = 'none';
+      document.getElementById('voteSuccess').style.display = 'flex';
+      toast('Feedback submitted successfully!', 'success');
+    } else {
+      toast('Failed to submit feedback', 'error');
+      document.getElementById('submitVoteBtn').disabled = false;
+      document.getElementById('submitVoteBtn').innerHTML = 'Submit Feedback';
+    }
+  } catch (err) {
+    toast('Network error while submitting feedback', 'error');
+    document.getElementById('submitVoteBtn').disabled = false;
+    document.getElementById('submitVoteBtn').innerHTML = 'Submit Feedback';
+  }
 }
 </script>
 {% endblock %}
