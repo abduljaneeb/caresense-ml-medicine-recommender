@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}CareSense — Community Leaderboard{% endblock %}
+
+{% block content %}
+<div class="page-wrap" style="max-width:900px">
+  <div class="section-head" style="margin-bottom:2rem; justify-content:center; text-align:center">
+    <div style="display:flex; flex-direction:column; align-items:center; gap:.5rem">
+      <div class="nav-pulse" style="width:48px; height:48px; font-size:1.2rem; margin-bottom:1rem; background:var(--violet)">
+        <i class="fas fa-ranking-star"></i>
+      </div>
+      <h2 style="font-size:2rem">AI Accuracy Leaderboard</h2>
+      <p style="color:var(--text-3); max-width:600px">Community-verified disease predictions ranked by AI accuracy, based on user feedback and star ratings.</p>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0; overflow:hidden">
+    <div style="padding:1.5rem 1.75rem; border-bottom:1px solid var(--border); background:linear-gradient(135deg, rgba(91,63,158,.04) 0%, var(--surface) 100%); display:flex; justify-content:space-between; align-items:center">
+      <h3 style="font-family:var(--font-display); font-size:1.15rem; font-weight:700; color:var(--text-1)"><i class="fas fa-chart-line" style="color:var(--violet)"></i> Prediction Accuracy</h3>
+      <button class="btn btn-ghost" onclick="loadLeaderboard()" style="padding:.5rem 1rem; font-size:.8rem">
+        <i class="fas fa-rotate"></i> Refresh
+      </button>
+    </div>
+
+    <!-- Leaderboard Table -->
+    <div style="overflow-x:auto">
+      <table style="width:100%; border-collapse:collapse; text-align:left">
+        <thead>
+          <tr style="background:var(--surface-2); border-bottom:1.5px solid var(--border); font-size:.8rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.05em">
+            <th style="padding:1rem 1.75rem; font-weight:700">Rank</th>
+            <th style="padding:1rem 1.75rem; font-weight:700">Disease</th>
+            <th style="padding:1rem 1.75rem; font-weight:700">Accuracy %</th>
+            <th style="padding:1rem 1.75rem; font-weight:700">Avg Rating</th>
+            <th style="padding:1rem 1.75rem; font-weight:700">Total Votes</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboardBody">
+          <tr>
+            <td colspan="5" style="padding:3rem; text-align:center; color:var(--text-3)">
+              <div class="loader" style="display:flex; justify-content:center">
+                <div class="spinner"></div>
+                <span style="margin-left:.75rem">Loading data...</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadLeaderboard() {
+  const tbody = document.getElementById('leaderboardBody');
+  tbody.innerHTML = '<tr><td colspan="5" style="padding:3rem; text-align:center; color:var(--text-3)"><div class="loader" style="display:flex; justify-content:center"><div class="spinner"></div><span style="margin-left:.75rem">Loading data...</span></div></td></tr>';
+
+  try {
+    const res = await fetch('/votes/stats');
+    const data = await res.json();
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:3rem; text-align:center; color:var(--text-3)"><i class="fas fa-inbox" style="font-size:2rem; margin-bottom:1rem; color:var(--border-dk)"></i><br/>No votes recorded yet.</td></tr>';
+      return;
+    }
+
+    let html = '';
+    data.forEach((row, idx) => {
+      const rank = idx + 1;
+      const accColor = row.accuracy_pct >= 80 ? 'var(--green)' : (row.accuracy_pct >= 50 ? 'var(--amber)' : 'var(--coral)');
+      
+      let rankDisplay = `<span style="font-weight:700; color:var(--text-3)">${rank}</span>`;
+      if (rank === 1) rankDisplay = `<i class="fas fa-trophy" style="color:#F59E0B; font-size:1.1rem"></i>`;
+      if (rank === 2) rankDisplay = `<i class="fas fa-medal" style="color:#9CA3AF; font-size:1.1rem"></i>`;
+      if (rank === 3) rankDisplay = `<i class="fas fa-medal" style="color:#B45309; font-size:1.1rem"></i>`;
+
+      // Star display
+      let starsHtml = '';
+      const fullStars = Math.floor(row.avg_stars);
+      const halfStar = row.avg_stars % 1 >= 0.5;
+      const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+
+      for (let i=0; i<fullStars; i++) starsHtml += '<i class="fas fa-star" style="color:#F59E0B; font-size:.8rem"></i> ';
+      if (halfStar) starsHtml += '<i class="fas fa-star-half-stroke" style="color:#F59E0B; font-size:.8rem"></i> ';
+      for (let i=0; i<emptyStars; i++) starsHtml += '<i class="far fa-star" style="color:#D1D5DB; font-size:.8rem"></i> ';
+
+      html += `
+        <tr style="border-bottom:1px solid var(--border); transition:background .2s">
+          <td style="padding:1rem 1.75rem">${rankDisplay}</td>
+          <td style="padding:1rem 1.75rem; font-weight:600; color:var(--text-1)">${row.disease}</td>
+          <td style="padding:1rem 1.75rem">
+            <div style="display:flex; align-items:center; gap:.5rem">
+              <span style="font-weight:700; color:${accColor}">${row.accuracy_pct}%</span>
+              <div style="width:60px; height:4px; background:var(--surface-3); border-radius:var(--r-pill); overflow:hidden">
+                <div style="height:100%; width:${row.accuracy_pct}%; background:${accColor}"></div>
+              </div>
+            </div>
+          </td>
+          <td style="padding:1rem 1.75rem; white-space:nowrap">${starsHtml} <span style="font-size:.8rem; color:var(--text-3); margin-left:.4rem">(${row.avg_stars.toFixed(1)})</span></td>
+          <td style="padding:1rem 1.75rem; color:var(--text-3); font-size:.9rem">${row.total_votes}</td>
+        </tr>
+      `;
+    });
+    tbody.innerHTML = html;
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:3rem; text-align:center; color:var(--coral)"><i class="fas fa-triangle-exclamation" style="margin-right:.5rem"></i> Error loading leaderboard data.</td></tr>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadLeaderboard);
+</script>
+<style>
+  tbody tr:hover { background: var(--surface-2); }
+</style>
+{% endblock %}
