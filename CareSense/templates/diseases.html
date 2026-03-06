@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% block title %}CareSense — Diseases & Symptoms{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-icon"><i class="fas fa-bacterium"></i></div>
+  <h1>Diseases &amp; <em>Symptoms</em></h1>
+  <p>Reference guide to all {{ total_diseases }} diseases and {{ total_symptoms }} symptoms in CareSense's dataset.</p>
+</div>
+
+<div class="page-wrap">
+
+  {# ── Stats strip ──────────────────────────────────────────── #}
+  <div class="ds-stats-strip">
+    <div class="ds-stat"><span class="ds-stat-num">{{ total_diseases }}</span><span class="ds-stat-lbl">Diseases</span></div>
+    <div class="ds-stat-div"></div>
+    <div class="ds-stat"><span class="ds-stat-num">{{ total_symptoms }}</span><span class="ds-stat-lbl">Symptoms</span></div>
+    <div class="ds-stat-div"></div>
+    <div class="ds-stat"><span class="ds-stat-num">1–7</span><span class="ds-stat-lbl">Severity Scale</span></div>
+    <div class="ds-stat-div"></div>
+    <div class="ds-stat"><span class="ds-stat-num">4,920</span><span class="ds-stat-lbl">Training Rows</span></div>
+  </div>
+
+  {# ── View tabs ─────────────────────────────────────────────── #}
+  <div class="ds-tab-bar">
+    <button class="ds-tab active" id="tabDisBtn" onclick="switchTab('diseases')">
+      <i class="fas fa-bacterium"></i> All Diseases
+    </button>
+    <button class="ds-tab" id="tabSymBtn" onclick="switchTab('symptoms')">
+      <i class="fas fa-list-check"></i> All Symptoms
+    </button>
+  </div>
+
+  {# ══ DISEASES TAB ══════════════════════════════════════════════ #}
+  <div id="tabDiseases">
+
+    {# Search + filter #}
+    <div class="ds-search-bar">
+      <div class="ds-search-wrap">
+        <i class="fas fa-search ds-search-icon"></i>
+        <input id="disSearch" type="text" class="ds-search-input"
+               placeholder="Search diseases, symptoms, medications…"
+               oninput="filterDiseases(this.value)"/>
+      </div>
+      <div class="ds-count" id="disCount">{{ total_diseases }} diseases</div>
+    </div>
+
+    {# Disease grid #}
+    <div class="dis-grid" id="disGrid">
+      {% for d in diseases %}
+      {% set slug = loop.index %}
+      <div class="dis-card" data-search="{{ d.name.lower() }} {{ d.description.lower() }} {{ d.key_symptoms | join(' ') | lower }}">
+        <div class="dis-card-head" onclick="toggleDis({{ slug }})">
+          <div class="dis-card-icon">
+            <i class="fas fa-virus"></i>
+          </div>
+          <div class="dis-card-title">
+            <h3>{{ d.name }}</h3>
+            {% if d.key_symptoms %}
+            <div class="dis-key-syms">
+              {% for s in d.key_symptoms[:3] %}
+              <span class="dis-sym-pill">{{ s.replace('_',' ') }}</span>
+              {% endfor %}
+              {% if d.key_symptoms|length > 3 %}
+              <span class="dis-sym-more">+{{ d.key_symptoms|length - 3 }} more</span>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+          <i class="fas fa-chevron-down dis-chevron" id="disChev{{ slug }}"></i>
+        </div>
+
+        <div class="dis-body" id="disBody{{ slug }}">
+          {# Description #}
+          <p class="dis-description">{{ d.description }}</p>
+
+          {# Top symptoms frequency #}
+          {% if d.top_symptoms %}
+          <div class="dis-section">
+            <div class="dis-section-lbl"><i class="fas fa-thermometer-half"></i> Common Symptoms (training frequency)</div>
+            <div class="dis-sym-freq-list">
+              {% for sym, freq in d.top_symptoms %}
+              <div class="dis-freq-row">
+                <span class="dis-freq-name">{{ sym.replace('_',' ') }}</span>
+                <div class="dis-freq-track">
+                  <div class="dis-freq-bar" style="width:{{ (freq*100)|round(0)|int }}%;background:{{ 'var(--green)' if freq >= 0.7 else ('var(--amber)' if freq >= 0.4 else 'var(--coral)') }}"></div>
+                </div>
+                <span class="dis-freq-pct">{{ (freq*100)|round(0)|int }}%</span>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+
+          {# 4-column info #}
+          <div class="dis-info-cols">
+            {% if d.medications %}
+            <div class="dis-info-col">
+              <div class="dis-info-col-head"><i class="fas fa-pills" style="color:var(--green)"></i> Medications</div>
+              <ul>{% for m in d.medications[:4] %}<li>{{ m }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+            {% if d.precautions %}
+            <div class="dis-info-col">
+              <div class="dis-info-col-head"><i class="fas fa-shield-halved" style="color:var(--coral)"></i> Precautions</div>
+              <ul>{% for p in d.precautions[:4] %}<li>{{ p }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+            {% if d.diets %}
+            <div class="dis-info-col">
+              <div class="dis-info-col-head"><i class="fas fa-apple-whole" style="color:var(--amber)"></i> Diet</div>
+              <ul>{% for x in d.diets[:4] %}<li>{{ x }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+            {% if d.workouts %}
+            <div class="dis-info-col">
+              <div class="dis-info-col-head"><i class="fas fa-person-running" style="color:var(--violet)"></i> Workouts</div>
+              <ul>{% for w in d.workouts[:4] %}<li>{{ w }}</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+          </div>
+
+          {# CTA to diagnose #}
+          <div class="dis-body-footer">
+            <a href="{{ url_for('index') }}" class="dis-diagnose-btn">
+              <i class="fas fa-stethoscope"></i> Check These Symptoms
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="ds-empty" id="disEmpty" style="display:none">
+      <i class="fas fa-magnifying-glass"></i>
+      <span>No diseases match your search.</span>
+    </div>
+  </div>
+
+  {# ══ SYMPTOMS TAB ══════════════════════════════════════════════ #}
+  <div id="tabSymptoms" style="display:none">
+
+    <div class="ds-search-bar">
+      <div class="ds-search-wrap">
+        <i class="fas fa-search ds-search-icon"></i>
+        <input id="symSearch" type="text" class="ds-search-input"
+               placeholder="Search symptoms…"
+               oninput="filterSymptoms(this.value)"/>
+      </div>
+      <div class="ds-count" id="symCount">{{ total_symptoms }} symptoms</div>
+    </div>
+
+    {# Severity legend #}
+    <div class="sym-severity-legend">
+      <span class="sym-sev-item sev-7"><span class="sev-dot"></span> 7 — Critical</span>
+      <span class="sym-sev-item sev-5"><span class="sev-dot"></span> 5–6 — Severe</span>
+      <span class="sym-sev-item sev-3"><span class="sev-dot"></span> 3–4 — Moderate</span>
+      <span class="sym-sev-item sev-1"><span class="sev-dot"></span> 1–2 — Mild</span>
+    </div>
+
+    {# Symptom grid #}
+    <div class="sym-grid" id="symGrid">
+      {% for s in sym_severity %}
+      {% set w = s.weight %}
+      {% set cls = 'sev-7' if w >= 7 else ('sev-5' if w >= 5 else ('sev-3' if w >= 3 else 'sev-1')) %}
+      <div class="sym-item {{ cls }}" data-name="{{ s.Symptom.lower() }}">
+        <div class="sym-item-top">
+          <span class="sym-item-name">{{ s.Symptom.replace('_',' ') }}</span>
+          <span class="sym-item-weight {{ cls }}">{{ w }}</span>
+        </div>
+        <div class="sym-weight-track">
+          <div class="sym-weight-bar" style="width:{{ ((w/7)*100)|round(0)|int }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="ds-empty" id="symEmpty" style="display:none">
+      <i class="fas fa-magnifying-glass"></i>
+      <span>No symptoms match your search.</span>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(tab) {
+  const showDis = tab === 'diseases';
+  document.getElementById('tabDiseases').style.display = showDis ? 'block' : 'none';
+  document.getElementById('tabSymptoms').style.display = showDis ? 'none'  : 'block';
+  document.getElementById('tabDisBtn').classList.toggle('active', showDis);
+  document.getElementById('tabSymBtn').classList.toggle('active', !showDis);
+}
+
+// ── Disease expand/collapse ───────────────────────────────────
+const openDis = new Set();
+function toggleDis(id) {
+  const body = document.getElementById('disBody' + id);
+  const chev = document.getElementById('disChev' + id);
+  const isOpen = openDis.has(id);
+  if (isOpen) {
+    openDis.delete(id);
+    body.classList.remove('open');
+    if (chev) chev.style.transform = '';
+  } else {
+    openDis.add(id);
+    body.classList.add('open');
+    if (chev) chev.style.transform = 'rotate(180deg)';
+  }
+}
+
+// ── Disease search filter ─────────────────────────────────────
+function filterDiseases(q) {
+  const query = q.trim().toLowerCase();
+  const cards = document.querySelectorAll('#disGrid .dis-card');
+  let shown = 0;
+  cards.forEach(card => {
+    const match = !query || card.dataset.search.includes(query);
+    card.style.display = match ? '' : 'none';
+    if (match) shown++;
+  });
+  document.getElementById('disCount').textContent = shown + ' disease' + (shown !== 1 ? 's' : '');
+  document.getElementById('disEmpty').style.display = shown === 0 ? 'flex' : 'none';
+}
+
+// ── Symptom search filter ─────────────────────────────────────
+function filterSymptoms(q) {
+  const query = q.trim().toLowerCase();
+  const items = document.querySelectorAll('#symGrid .sym-item');
+  let shown = 0;
+  items.forEach(item => {
+    const match = !query || item.dataset.name.includes(query);
+    item.style.display = match ? '' : 'none';
+    if (match) shown++;
+  });
+  document.getElementById('symCount').textContent = shown + ' symptom' + (shown !== 1 ? 's' : '');
+  document.getElementById('symEmpty').style.display = shown === 0 ? 'flex' : 'none';
+}
+
+// Animate freq bars on load
+window.addEventListener('DOMContentLoaded', () => {
+  // Bars animate via CSS transition when class added
+  setTimeout(() => {
+    document.querySelectorAll('.dis-freq-bar, .sym-weight-bar').forEach(b => {
+      const w = b.style.width;
+      b.style.width = '0%';
+      requestAnimationFrame(() => requestAnimationFrame(() => { b.style.width = w; }));
+    });
+  }, 100);
+});
+</script>
+{% endblock %}

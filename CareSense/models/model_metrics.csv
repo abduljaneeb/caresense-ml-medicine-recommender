@@ -1,0 +1,6 @@
+Model,Test Accuracy,F1 Score,CV Mean,CV Std,Note
+Random Forest,1.0,1.0,1.0,0.0,CV std near 0: small dataset with few unique patterns per class — model memorises them
+KNN,1.0,1.0,0.987,0.0215,
+SVM,1.0,1.0,0.9571,0.0332,
+Naive Bayes,0.9508,0.9388,0.9113,0.0511,
+Gradient Boosting,0.8197,0.8032,0.7591,0.06,

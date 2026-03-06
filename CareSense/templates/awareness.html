@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% block title %}CareSense — About{% endblock %}
+
+{% block content %}
+
+{# ══ HERO ══════════════════════════════════════════════════════ #}
+<div class="about-hero">
+  <div class="about-hero-inner">
+    <div class="about-hero-icon"><i class="fas fa-dna"></i></div>
+    <h1>About <em>CareSense</em></h1>
+    <p>An open-source AI-powered medical diagnosis assistant built with Python, Flask, and scikit-learn — designed to demonstrate applied machine learning in healthcare, not replace clinical care.</p>
+    <div class="about-hero-tags">
+      <span class="about-hero-tag"><i class="fas fa-code"></i> Open Source</span>
+      <span class="about-hero-tag"><i class="fas fa-layer-group"></i> Ensemble AI</span>
+      <span class="about-hero-tag"><i class="fas fa-person"></i> Body Map</span>
+      <span class="about-hero-tag"><i class="fas fa-clock"></i> Duration Input</span>
+      <span class="about-hero-tag"><i class="fas fa-user-shield"></i> Risk Profiling</span>
+      <span class="about-hero-tag"><i class="fas fa-flask"></i> Academic Tool</span>
+    </div>
+  </div>
+</div>
+
+{# ══ STATS STRIP ═══════════════════════════════════════════════ #}
+<div class="about-stats-strip">
+  <div class="about-stat"><span class="about-stat-num">41</span><span class="about-stat-lbl">Diseases</span></div>
+  <div class="about-stat-div"></div>
+  <div class="about-stat"><span class="about-stat-num">132</span><span class="about-stat-lbl">Symptoms</span></div>
+  <div class="about-stat-div"></div>
+  <div class="about-stat"><span class="about-stat-num">3</span><span class="about-stat-lbl">ML Models</span></div>
+  <div class="about-stat-div"></div>
+  <div class="about-stat"><span class="about-stat-num">8</span><span class="about-stat-lbl">Emergency Combos</span></div>
+  <div class="about-stat-div"></div>
+  <div class="about-stat"><span class="about-stat-num">4,920</span><span class="about-stat-lbl">Training Records</span></div>
+</div>
+
+<div class="page-wrap">
+
+  {# ══ DISCLAIMER ════════════════════════════════════════════════ #}
+  <div class="disclaimer-box" style="margin-bottom:2rem">
+    <i class="fas fa-triangle-exclamation"></i>
+    <div>
+      <h4>Important Medical Disclaimer</h4>
+      <p>CareSense is an <strong>educational and research tool only</strong>. It does not constitute medical advice, diagnosis, or treatment. All predictions are probabilistic and based on a limited training dataset. Never use this system as a substitute for professional medical care. Always consult a licensed physician before making any health decisions.</p>
+    </div>
+  </div>
+
+  {# ══ WHAT IT DOES ══════════════════════════════════════════════ #}
+  <div class="section-head"><div class="section-bar"></div><h2>What CareSense Does</h2></div>
+  <div class="card" style="margin-bottom:2rem">
+    <div class="analysis-grid">
+      <div class="ai-card">
+        <div class="ai-icon-wrap" style="background:var(--green-lt)"><i class="fas fa-magnifying-glass" style="color:var(--green)"></i></div>
+        <h4>Symptom Analysis</h4>
+        <p>Accepts up to 17 clinical symptoms, severity-weighted on a 1–7 scale. Chest pain carries far more weight than mild itching — reflecting real clinical priority in the prediction.</p>
+      </div>
+      <div class="ai-card">
+        <div class="ai-icon-wrap" style="background:var(--violet-lt)"><i class="fas fa-layer-group" style="color:var(--violet)"></i></div>
+        <h4>Ensemble Voting</h4>
+        <p>Random Forest (50%), SVM (35%), and Naive Bayes (15%) each vote. Their probability vectors are averaged, producing a more reliable diagnosis than any single model alone.</p>
+      </div>
+      <div class="ai-card">
+        <div class="ai-icon-wrap" style="background:var(--amber-lt)"><i class="fas fa-ranking-star" style="color:var(--amber)"></i></div>
+        <h4>Differential Diagnosis</h4>
+        <p>The top 5 candidate diseases are shown with confidence bars. Each expands to reveal which of your symptoms strongly, moderately, or weakly support that diagnosis — and which key symptoms you didn't report.</p>
+      </div>
+      <div class="ai-card">
+        <div class="ai-icon-wrap" style="background:var(--coral-lt)"><i class="fas fa-triangle-exclamation" style="color:var(--coral)"></i></div>
+        <h4>Emergency Detection</h4>
+        <p>8 critical symptom combinations — including the cardiac triad, stroke FAST symptoms, and anaphylaxis indicators — trigger an immediate emergency alert before results are shown.</p>
+      </div>
+      <div class="ai-card">
+        <div class="ai-icon-wrap" style="background:var(--green-lt)"><i class="fas fa-clock" style="color:var(--green)"></i></div>
+        <h4>Duration Weighting</h4>
+        <p>Each symptom carries a duration selector: Hours (0.6×), Days (1.0×), Weeks (1.3×), Months+ (1.6×). A cough you've had for months weighs more than one from this morning — because clinically, it should.</p>
+      </div>
+      <div class="ai-card">
+        <div class="ai-icon-wrap" style="background:var(--violet-lt)"><i class="fas fa-person" style="color:var(--violet)"></i></div>
+        <h4>Body Map Selection</h4>
+        <p>An interactive SVG body silhouette lets you tap any region — Head, Chest, Abdomen, Legs, Skin, Urinary, and more — to browse and select region-specific symptoms visually rather than typing them.</p>
+      </div>
+      <div class="ai-card">
+        <div class="ai-icon-wrap" style="background:var(--amber-lt)"><i class="fas fa-user-shield" style="color:var(--amber)"></i></div>
+        <h4>Risk Factor Profiling</h4>
+        <p>Age group (Under 18 → 70+), Diabetic, Hypertensive, and Smoker flags apply post-ensemble probability boosts. A diabetic user sees a higher weighting for Diabetes; a smoker for Bronchial Asthma.</p>
+      </div>
+      <div class="ai-card">
+        <div class="ai-icon-wrap" style="background:var(--coral-lt)"><i class="fas fa-rotate" style="color:var(--coral)"></i></div>
+        <h4>Re-Diagnose Flow</h4>
+        <p>From any result page, tap "Add Symptoms" to open the re-analyse overlay. Your existing symptoms are locked in; add new ones with durations and re-run — a purple badge marks the refined result.</p>
+      </div>
+    </div>
+  </div>
+
+  {# ══ TECH STACK ════════════════════════════════════════════════ #}
+  <div class="section-head"><div class="section-bar"></div><h2>Technology Stack</h2></div>
+  <div class="tech-stack-grid" style="margin-bottom:2rem">
+    <div class="tech-card">
+      <div class="tech-card-icon" style="background:var(--green-lt);color:var(--green)"><i class="fas fa-server"></i></div>
+      <h4>Flask 3 + Python 3.11</h4>
+      <p>Lightweight web framework serving the ML backend, REST API, and Jinja2 templates. Session management for result persistence between pages.</p>
+    </div>
+    <div class="tech-card">
+      <div class="tech-card-icon" style="background:#dbeafe;color:#1d4ed8"><i class="fas fa-brain"></i></div>
+      <h4>scikit-learn</h4>
+      <p>Random Forest, SVM, and Naive Bayes ensemble — all from sklearn's unified API with soft-voting probability averaging and cross-validation.</p>
+    </div>
+    <div class="tech-card">
+      <div class="tech-card-icon" style="background:var(--amber-lt);color:var(--amber)"><i class="fas fa-table"></i></div>
+      <h4>Pandas + NumPy</h4>
+      <p>Data loading, severity weighting, feature engineering, co-occurrence matrix computation, and 132-dimensional input vector construction.</p>
+    </div>
+    <div class="tech-card">
+      <div class="tech-card-icon" style="background:var(--coral-lt);color:var(--coral)"><i class="fas fa-chart-bar"></i></div>
+      <h4>Matplotlib + Seaborn</h4>
+      <p>9 training visualisations — confusion matrix, CV boxplot, feature importance, per-class accuracy, and severity impact charts on the Analytics page.</p>
+    </div>
+    <div class="tech-card">
+      <div class="tech-card-icon" style="background:var(--violet-lt);color:var(--violet)"><i class="fas fa-file-pdf"></i></div>
+      <h4>ReportLab</h4>
+      <p>Generates downloadable PDF reports complete with differential charts, severity gauges, medication tables, and dynamic threshold explanations.</p>
+    </div>
+    <div class="tech-card">
+      <div class="tech-card-icon" style="background:var(--green-lt);color:var(--green)"><i class="fas fa-palette"></i></div>
+      <h4>Custom CSS Design System</h4>
+      <p>Fraunces + Plus Jakarta Sans. Emerald clinical-warmth palette with full dark/light CSS token system. Fully responsive from 320px up.</p>
+    </div>
+  </div>
+
+  {# ══ HOW A PREDICTION IS MADE ══════════════════════════════════ #}
+  <div class="section-head"><div class="section-bar"></div><h2>How a Prediction is Made</h2></div>
+  <div class="pipeline-steps" style="margin-bottom:2rem">
+    <div class="pipeline-step">
+      <div class="pipeline-num">1</div>
+      <div>
+        <h4>Symptom Input, Duration &amp; Body Map</h4>
+        <p>Symptoms are entered via search, quick chips, or the SVG body map. Each symptom gets a duration selector (Hours / Days / Weeks / Months+) which becomes a multiplier on that symptom's feature value, capturing clinical chronicity before the model even sees the data.</p>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">2</div>
+      <div>
+        <h4>Severity-Weighted Feature Vector</h4>
+        <p>Each symptom is looked up in the severity weight table (weights 1–7). Its final feature value is <code>(weight / max_weight) × duration_multiplier</code>, producing a 132-dimensional input vector where both clinical severity and symptom chronicity are encoded.</p>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">3</div>
+      <div>
+        <h4>Emergency Pre-Check</h4>
+        <p>Before prediction, 8 critical symptom combinations are tested — cardiac triad (chest pain + breathlessness + sweating), stroke FAST indicators, anaphylaxis, and more. If any match, a full-screen emergency alert fires immediately with a direct 112 call button.</p>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">4</div>
+      <div>
+        <h4>Ensemble Soft Voting</h4>
+        <p>The input vector is passed to all three models. Each returns a 41-class probability vector. These are combined as <code>0.50 × RF + 0.35 × SVM + 0.15 × NB</code>. The class with the highest weighted average probability is the prediction.</p>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">5</div>
+      <div>
+        <h4>Risk Factor Probability Boost</h4>
+        <p>Post-ensemble, if risk factors are set, relevant disease probabilities are multiplied by a boost factor (e.g. Diabetes +60% for diabetic users, Bronchial Asthma +50% for smokers). The top-5 list is then re-sorted with these adjusted scores capped at 99.9%.</p>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">6</div>
+      <div>
+        <h4>Dynamic Confidence Threshold</h4>
+        <p>Your total severity score determines the minimum confidence required. Low-severity scores require 30%; critical scores require up to 70%. If confidence falls below threshold, a doctor consultation advisory is shown prominently alongside the result.</p>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">7</div>
+      <div>
+        <h4>Follow-Up Validation</h4>
+        <p>Up to 3 key diagnostic symptoms for the predicted disease are surfaced as checkbox questions. Confirmed symptoms are merged, durations assigned, and the full pipeline re-runs — results validated this way display a green "Validated via follow-up" badge.</p>
+      </div>
+    </div>
+    <div class="pipeline-step">
+      <div class="pipeline-num">8</div>
+      <div>
+        <h4>Differential Explanation &amp; Re-Diagnose</h4>
+        <p>Each top-5 disease shows which of your symptoms are strong (≥70% training frequency), moderate (30–69%), or weak matches, plus key symptoms you didn't report. The "Add Symptoms" button on the result page lets you extend the symptom list and re-run the full pipeline with a re-analyse badge on the new result.</p>
+      </div>
+    </div>
+  </div>
+
+  {# ══ DATASET ═══════════════════════════════════════════════════ #}
+  <div class="section-head"><div class="section-bar"></div><h2>Training Dataset</h2></div>
+  <div class="card" style="margin-bottom:2rem">
+    <div class="two-col" style="gap:2rem;align-items:start">
+      <div>
+        <p style="font-size:.9rem;color:var(--text-2);line-height:1.75;margin-bottom:1rem">
+          CareSense is trained on the <strong>Disease Prediction Using Machine Learning</strong> dataset —
+          a widely-used benchmark containing symptom–disease mappings across 41 conditions and 4,920 training records.
+          Symptom severity weights (1–7) are drawn from a separate clinical severity reference file with 133 entries.
+        </p>
+        <p style="font-size:.9rem;color:var(--text-2);line-height:1.75;margin-bottom:1rem">
+          The ensemble combines Random Forest (best cross-validation accuracy), SVM (strong on high-dimensional sparse features), and
+          Naive Bayes (fast, probabilistic, good on symptom co-occurrence patterns). Their complementary strengths
+          produce a more reliable final output than any single model.
+        </p>
+        <p style="font-size:.9rem;color:var(--text-2);line-height:1.75">
+          Disease information — descriptions, medications, precautions, diets, and workout recommendations — is sourced
+          from supplementary CSV reference files and surfaced post-prediction for every result.
+        </p>
+      </div>
+      <div>
+        <div style="display:flex;flex-direction:column;gap:.75rem">
+          <div class="info-card"><i class="fas fa-circle-check" style="color:var(--green)"></i><span><strong>41 diseases</strong> across multiple body systems</span></div>
+          <div class="info-card"><i class="fas fa-circle-check" style="color:var(--green)"></i><span><strong>132 clinical symptoms</strong> with severity weights 1–7</span></div>
+          <div class="info-card"><i class="fas fa-circle-check" style="color:var(--green)"></i><span><strong>Ensemble of 3 models</strong> with soft-vote averaging</span></div>
+          <div class="info-card"><i class="fas fa-circle-check" style="color:var(--green)"></i><span><strong>Duration multipliers</strong> encode symptom chronicity</span></div>
+          <div class="info-card"><i class="fas fa-circle-check" style="color:var(--green)"></i><span><strong>Risk factor boosts</strong> for 5 age/condition profiles</span></div>
+          <div class="info-card"><i class="fas fa-circle-check" style="color:var(--green)"></i><span><strong>8 emergency combos</strong> checked before every prediction</span></div>
+          <div class="info-card"><i class="fas fa-circle-check" style="color:var(--green)"></i><span><strong>Co-occurrence map</strong> powers smart symptom suggestions</span></div>
+          <div class="info-card"><i class="fas fa-circle-check" style="color:var(--green)"></i><span><strong>PDF report</strong> with charts, tables &amp; threshold explanation</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ══ LIMITATIONS ═══════════════════════════════════════════════ #}
+  <div class="section-head"><div class="section-bar"></div><h2>Known Limitations</h2></div>
+  <div class="card" style="margin-bottom:2rem">
+    <div class="analysis-grid">
+      <div class="ai-card" style="border-color:var(--coral-border);background:var(--coral-lt)">
+        <div class="ai-icon-wrap" style="background:#fff"><i class="fas fa-database" style="color:var(--coral)"></i></div>
+        <h4 style="color:var(--coral)">Limited Training Data</h4>
+        <p>4,920 records across 41 diseases. Real-world disease prevalence, demographics, and symptom variability are far more complex than any single benchmark dataset can capture.</p>
+      </div>
+      <div class="ai-card" style="border-color:var(--amber-border);background:var(--amber-lt)">
+        <div class="ai-icon-wrap" style="background:#fff"><i class="fas fa-user-slash" style="color:var(--amber)"></i></div>
+        <h4 style="color:var(--amber)">No Physical Examination</h4>
+        <p>CareSense cannot measure vitals, examine a patient, or order tests. Diagnoses that require physical signs, lab results, or imaging are outside its scope entirely.</p>
+      </div>
+      <div class="ai-card" style="border-color:var(--border-md)">
+        <div class="ai-icon-wrap" style="background:var(--green-lt)"><i class="fas fa-list-check" style="color:var(--green)"></i></div>
+        <h4>Binary Symptom Encoding</h4>
+        <p>Symptoms are treated as present or absent. Intensity, location specificity, and associated signs that a clinician would assess are not captured beyond severity weighting and duration.</p>
+      </div>
+      <div class="ai-card" style="border-color:var(--border-md)">
+        <div class="ai-icon-wrap" style="background:var(--violet-lt)"><i class="fas fa-globe" style="color:var(--violet)"></i></div>
+        <h4>Geographic &amp; Demographic Bias</h4>
+        <p>The training dataset reflects a specific epidemiological context. Disease prevalence differs globally. Risk factor boosts are intentionally conservative estimates, not clinical-grade adjustments.</p>
+      </div>
+    </div>
+  </div>
+
+  {# ══ HEALTH GUIDANCE ═══════════════════════════════════════════ #}
+  <div class="section-head"><div class="section-bar"></div><h2>Health Guidance</h2></div>
+  <div class="awareness-grid" style="margin-bottom:2rem">
+    <div class="aw-card">
+      <div class="aw-icon" style="background:var(--green-lt);color:var(--green)"><i class="fas fa-pills"></i></div>
+      <h3>Safe Medication Use</h3>
+      <ul>
+        <li>Always follow prescribed dosage — never self-adjust</li>
+        <li>Complete the full course even when symptoms improve</li>
+        <li>Inform your doctor of all medications including supplements</li>
+        <li>Never share prescription medicine with others</li>
+        <li>Store medicines as directed — heat and humidity degrade them</li>
+      </ul>
+    </div>
+    <div class="aw-card">
+      <div class="aw-icon" style="background:var(--coral-lt);color:var(--coral)"><i class="fas fa-user-doctor"></i></div>
+      <h3>When to See a Doctor</h3>
+      <ul>
+        <li>Symptoms lasting more than 3 days without improvement</li>
+        <li>Fever above 39.4°C (103°F) in adults</li>
+        <li>Chest pain or difficulty breathing — seek emergency care immediately</li>
+        <li>Any sudden severe or rapidly worsening symptoms</li>
+        <li>When CareSense shows a "Consultation Recommended" advisory</li>
+      </ul>
+    </div>
+    <div class="aw-card">
+      <div class="aw-icon" style="background:var(--amber-lt);color:var(--amber)"><i class="fas fa-heart-pulse"></i></div>
+      <h3>Preventive Health</h3>
+      <ul>
+        <li>Schedule annual health check-ups and screenings</li>
+        <li>Stay up-to-date with recommended vaccinations</li>
+        <li>Exercise at least 150 minutes of moderate activity weekly</li>
+        <li>Aim for 7–9 hours of quality sleep per night</li>
+        <li>Eat a balanced diet rich in whole foods and fibre</li>
+      </ul>
+    </div>
+    <div class="aw-card">
+      <div class="aw-icon" style="background:var(--violet-lt);color:var(--violet)"><i class="fas fa-robot"></i></div>
+      <h3>Understanding AI Health Tools</h3>
+      <ul>
+        <li>AI analyses patterns — it does not examine patients</li>
+        <li>Results are probabilistic, not definitive diagnoses</li>
+        <li>Use CareSense to prepare for — not replace — a doctor visit</li>
+        <li>Always discuss AI results with your physician</li>
+        <li>A high confidence score is not a guarantee of accuracy</li>
+      </ul>
+    </div>
+  </div>
+
+  {# ══ EMERGENCY HELPLINES ════════════════════════════════════════ #}
+  <div class="section-head"><div class="section-bar"></div><h2>Emergency Helplines <span style="font-size:.8rem;color:var(--text-3);font-family:var(--font-body);font-weight:400">(India)</span></h2></div>
+  <div class="emergency-grid" style="margin-bottom:2rem">
+    <div class="emer-num-card"><i class="fas fa-truck-medical"></i><span>All Emergencies</span><strong>112</strong></div>
+    <div class="emer-num-card"><i class="fas fa-hospital"></i><span>Ambulance</span><strong>108</strong></div>
+    <div class="emer-num-card"><i class="fas fa-heart"></i><span>Cardiac Helpline</span><strong>1800-112-545</strong></div>
+    <div class="emer-num-card"><i class="fas fa-head-side-virus"></i><span>Mental Health (iCall)</span><strong>9152987821</strong></div>
+    <div class="emer-num-card"><i class="fas fa-child"></i><span>Child Helpline</span><strong>1098</strong></div>
+    <div class="emer-num-card"><i class="fas fa-phone-volume"></i><span>Health Helpline</span><strong>104</strong></div>
+  </div>
+
+  {# ══ FOOTER CTA ════════════════════════════════════════════════ #}
+  <div class="about-cta-strip">
+    <div class="about-cta-text">
+      <h3>Ready to try a diagnosis?</h3>
+      <p>Enter your symptoms, set durations, apply risk factors — and let the ensemble do the rest.</p>
+    </div>
+    <a href="{{ url_for('index') }}" class="btn btn-primary" style="white-space:nowrap">
+      <i class="fas fa-stethoscope"></i> Start Diagnosis
+    </a>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,771 @@
+{% extends "base.html" %}
+{% block title %}CareSense — {{ r.disease }} Result{% endblock %}
+
+{% block content %}
+
+{# ══ RESULT HERO ══════════════════════════════════════════════════ #}
+<div class="result-hero {% if r.emergency %}result-hero-emergency{% elif r.consult_doctor %}result-hero-warn{% else %}result-hero-ok{% endif %}">
+  <div class="result-hero-inner">
+
+    <div class="result-hero-left">
+      {% if r.rediagnosed %}
+      <div class="rh-badge" style="border-color:rgba(99,102,241,.5);background:rgba(99,102,241,.18)"><i class="fas fa-rotate"></i> Re-analysed with added symptoms</div>
+      {% endif %}
+      {% if r.validated %}
+      <div class="rh-badge rh-badge-validated"><i class="fas fa-circle-check"></i> Validated via follow-up</div>
+      {% endif %}
+      {% if r.emergency %}
+      <div class="rh-badge rh-badge-emergency"><i class="fas fa-triangle-exclamation"></i> Emergency Detected</div>
+      {% endif %}
+
+      <div class="rh-eyebrow">AI Predicted Disease</div>
+      <h1 class="rh-disease">{{ r.disease }}</h1>
+
+      <div class="rh-conf-row">
+        <div class="rh-conf-pill">
+          <span class="rh-conf-num" id="rhConfNum">{{ "%.1f"|format(r.confidence) }}%</span>
+          <span class="rh-conf-lbl">Ensemble Confidence</span>
+        </div>
+        <div class="rh-conf-track">
+          <div class="rh-conf-bar" id="rhConfBar" data-w="{{ [r.confidence, 100]|min }}"
+               style="width:0%;background:{{ 'var(--green)' if r.confidence >= 70 else ('var(--amber)' if r.confidence >= 40 else 'var(--coral)') }}"></div>
+        </div>
+        <div class="rh-threshold">⚙ Threshold: {{ r.threshold_used }}% · {{ r.severity_label }}</div>
+      </div>
+
+      {% if r.risk_factors and (r.risk_factors.get('diabetic') or r.risk_factors.get('smoker') or r.risk_factors.get('hypertensive') or r.risk_factors.get('age_group','18-30') not in ('18-30','under-18','')) %}
+      <div class="rh-risk-row">
+        <i class="fas fa-heart-pulse"></i>
+        Risk profile:
+        <strong>{{ r.risk_factors.get('age_group','—') }}</strong>
+        {% if r.risk_factors.get('diabetic') %}<span class="rh-risk-tag">Diabetic</span>{% endif %}
+        {% if r.risk_factors.get('hypertensive') %}<span class="rh-risk-tag">Hypertensive</span>{% endif %}
+        {% if r.risk_factors.get('smoker') %}<span class="rh-risk-tag">Smoker</span>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="result-hero-right">
+      <div class="rh-stats">
+        <div class="rh-stat">
+          <span class="rh-stat-num">{{ r.sym_count }}</span>
+          <span class="rh-stat-lbl">Symptoms</span>
+        </div>
+        <div class="rh-stat">
+          <span class="rh-stat-num">{{ r.severity_score }}</span>
+          <span class="rh-stat-lbl">Sev. Score</span>
+        </div>
+        <div class="rh-stat">
+          <span class="rh-stat-num {% if r.consult_doctor %}stat-warn{% else %}stat-ok{% endif %}">
+            {{ 'Required' if r.consult_doctor else 'Not Needed' }}
+          </span>
+          <span class="rh-stat-lbl">Doctor Visit</span>
+        </div>
+      </div>
+      <div class="rh-actions">
+        <a href="{{ url_for('index') }}" class="btn rh-back"
+           style="background:transparent;border:1.5px solid rgba(255,255,255,.38);color:#fff;text-decoration:none">
+          <i class="fas fa-arrow-left"></i> New Diagnosis
+        </a>
+        <button class="btn rh-rediagnose" onclick="openRediagnose()"
+                style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.38);color:#fff">
+          <i class="fas fa-rotate"></i> Add Symptoms
+        </button>
+        <button class="btn btn-primary rh-pdf" id="pdfBtn" onclick="downloadPDF()">
+          <i class="fas fa-file-pdf"></i> PDF
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="page-wrap">
+
+  {# ── Alert banners ─────────────────────────────────────────── #}
+  {% if r.emergency and r.emergency_info %}
+  <div class="emergency-result-banner" style="display:flex;margin-bottom:1rem">
+    <i class="fas fa-triangle-exclamation"></i>
+    <span>⚠ Emergency: {{ r.emergency_info.message }} — AI analysis shown for reference only. Seek immediate care.</span>
+  </div>
+  {% endif %}
+
+  {% if r.consult_doctor %}
+  <div class="consult-banner" style="display:flex;margin-bottom:1rem">
+    <i class="fas fa-user-doctor"></i>
+    <div>
+      <strong>Medical Consultation Recommended</strong>
+      <p>Severity score {{ r.severity_score }} ({{ r.severity_label }}).
+         Confidence {{ "%.1f"|format(r.confidence) }}% is below the {{ r.threshold_used }}%
+         threshold for this severity level.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Model votes ───────────────────────────────────────────── #}
+  {% if r.model_votes %}
+  <div class="result-votes-bar">
+    <span class="result-votes-lbl"><i class="fas fa-layer-group"></i> Ensemble: RF 50% · SVM 35% · NB 15%</span>
+    <div class="result-votes-chips">
+      {% for name, vote in r.model_votes.items() %}
+      {% set agrees = (vote.disease == r.disease) %}
+      <div class="mv-chip {{ 'mv-agree' if agrees else 'mv-disagree' }}"
+           title="{{ name }}: {{ vote.disease }} ({{ vote.confidence }}%)">
+        <i class="fas {{ 'fa-check' if agrees else 'fa-xmark' }}"></i>
+        <strong>{{ 'RF' if name == 'Random Forest' else ('NB' if name == 'Naive Bayes' else name) }}</strong>
+        <span>{{ vote.disease[:18] }}{% if vote.disease|length > 18 %}…{% endif %}</span>
+        <em>{{ vote.confidence }}%</em>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ══ Two-column: Disease info + Top-5 ═════════════════════ #}
+  <div class="two-col result-two-col">
+
+    {# LEFT: disease card #}
+    <div>
+      <div class="card">
+        <div class="disease-header" style="margin-bottom:1rem">
+          <div class="disease-icon-bg"><i class="fas fa-virus"></i></div>
+          <div>
+            <div class="disease-eyebrow">About This Disease</div>
+            <div class="disease-name">{{ r.disease }}</div>
+          </div>
+        </div>
+        <p style="font-size:.93rem;color:var(--text-2);line-height:1.7;margin-bottom:1.25rem">
+          {{ r.info.description or 'No description available.' }}
+        </p>
+
+        <div class="stats-row">
+          <div class="mini-stat {{ 'sev-high' if r.severity_score >= 13 else ('sev-med' if r.severity_score >= 6 else 'sev-low') }}">
+            <i class="fas fa-weight-hanging"></i>
+            <span class="sv">{{ r.severity_score }}</span>
+            <small>{{ r.severity_label }}</small>
+          </div>
+          <div class="mini-stat {{ 'consult-yes' if r.consult_doctor else 'consult-no' }}">
+            <i class="fas fa-user-doctor"></i>
+            <span class="sv" style="font-size:.8rem;white-space:nowrap">{{ 'Advised' if r.consult_doctor else 'Not Needed' }}</span>
+            <small>Doctor</small>
+          </div>
+          <div class="mini-stat">
+            <i class="fas fa-list-check"></i>
+            <span class="sv">{{ r.sym_count }}</span>
+            <small>Symptoms</small>
+          </div>
+        </div>
+      </div>
+
+      {# Reported symptoms #}
+      <div class="card" style="margin-top:1.25rem">
+        <div class="card-title" style="margin-bottom:.9rem">
+          <i class="fas fa-clipboard-list"></i> Reported Symptoms
+        </div>
+        <div class="sym-list">
+          {% set dw = r.duration_weights or {} %}
+          {% set dur_display = {'hours':'hrs','days':'days','weeks':'wks','chronic':'months+'} %}
+          {% for s in r.selected_symptoms %}
+          {% set dur = dw.get(s, '') %}
+          <span class="tag tag-sm" title="{{ s.replace('_',' ') }}{% if dur %} — {{ dur_display.get(dur,dur) }}{% endif %}">
+            {{ s.replace('_',' ') }}{% if dur %} <em style="font-style:normal;font-size:.68rem;opacity:.65;font-weight:400">· {{ dur_display.get(dur,dur) }}</em>{% endif %}
+          </span>
+          {% endfor %}
+        </div>
+
+        {% if r.suggestions %}
+        <div class="post-sug-wrap" id="postSugWrap">
+          <div class="post-sug-header">
+            <div class="post-sug-title">
+              <i class="fas fa-lightbulb"></i>
+              <span>Did you also experience any of these?</span>
+            </div>
+            <span class="post-sug-hint">Select any that apply — we'll re-analyse with them added</span>
+          </div>
+          <div class="post-sug-chips" id="postSugRow">
+            {% for s in r.suggestions %}
+            <button class="post-sug-chip" data-sym="{{ s }}" onclick="addPostSug(this,'{{ s }}')">
+              <span class="psc-plus"><i class="fas fa-plus"></i></span>
+              <span>{{ s.replace('_',' ') }}</span>
+            </button>
+            {% endfor %}
+          </div>
+          <div class="post-sug-cta" id="postSugCta" style="display:none">
+            <div class="post-sug-added-row" id="postSugAddedRow"></div>
+            <button class="post-sug-run-btn" onclick="runWithSuggestions()">
+              <i class="fas fa-brain"></i>
+              Re-analyse with added symptoms
+            </button>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# RIGHT: Top-5 differential #}
+    <div class="card">
+      <div class="card-title" style="margin-bottom:.5rem">
+        <i class="fas fa-ranking-star"></i> Top 5 Predictions
+      </div>
+      <p style="font-size:.78rem;color:var(--text-3);margin-bottom:.85rem;line-height:1.5">
+        Ranked by ensemble confidence. Click any row to see which of your symptoms match that disease.
+      </p>
+      <div class="top5-legend">
+        <span class="diff-pill diff-strong" style="font-size:.65rem">Strong match</span>
+        <span class="diff-pill diff-moderate" style="font-size:.65rem">Moderate</span>
+        <span class="diff-pill diff-weak" style="font-size:.65rem">Weak</span>
+        <span class="diff-pill diff-missing" style="font-size:.65rem">Typical but unreported</span>
+      </div>
+      <div class="top5-list" id="top5List">
+        {% set diff = r.differential or {} %}
+        {% for disease, prob in r.top5.items() %}
+        {% set i = loop.index0 %}
+        {% set exp = diff.get(disease, {}) %}
+        {% set strong   = exp.get('strong',   []) %}
+        {% set moderate = exp.get('moderate', []) %}
+        {% set weak     = exp.get('weak',     []) %}
+        {% set missing  = exp.get('missing',  []) %}
+        {% set match_pct = exp.get('match_pct', 0) %}
+        {% set has_exp = strong|length > 0 or moderate|length > 0 or weak|length > 0 or missing|length > 0 %}
+
+        <div class="top5-item{% if has_exp %} has-diff{% endif %}"
+             data-prob="{{ prob }}"
+             data-match="{{ match_pct }}"
+             data-primary="{{ 'true' if i==0 else 'false' }}"
+             {% if has_exp %}onclick="toggleDiff(this)"{% endif %}>
+          <div class="top5-main">
+            <div class="top5-rank">
+              <span class="top5-rank-num">{{ i+1 }}</span>
+            </div>
+            <div class="top5-name-wrap">
+              <span class="top5-name">{{ disease }}</span>
+            </div>
+            <div class="top5-track">
+              <div class="top5-bar"
+                   style="width:0%;background:{{ 'var(--green)' if prob >= 70 else ('var(--amber)' if prob >= 40 else 'var(--coral)') }}"
+                   data-w="{{ [prob,100]|min }}"></div>
+            </div>
+            <div class="top5-pct">{{ "%.1f"|format(prob) }}%</div>
+            {% if match_pct is not none %}
+            <span class="match-badge {{ 'match-high' if match_pct >= 75 else ('match-med' if match_pct >= 40 else 'match-low') }}">
+              {{ match_pct }}%<span style="font-weight:400;opacity:.75"> match</span>
+            </span>
+            {% endif %}
+            {% if has_exp %}<i class="fas fa-chevron-down top5-chevron"></i>{% endif %}
+          </div>
+
+          {% if has_exp %}
+          <div class="diff-body">
+            {% if strong or moderate or weak %}
+            <div class="diff-row">
+              <span class="diff-row-lbl match-lbl"><i class="fas fa-circle-check"></i> Your symptoms match:</span>
+              {% for s in strong   %}<span class="diff-pill diff-strong">{{ s.replace('_',' ') }}</span>{% endfor %}
+              {% for s in moderate %}<span class="diff-pill diff-moderate">{{ s.replace('_',' ') }}</span>{% endfor %}
+              {% for s in weak     %}<span class="diff-pill diff-weak">{{ s.replace('_',' ') }}</span>{% endfor %}
+            </div>
+            {% else %}
+            <div class="diff-none">None of your symptoms strongly point to this disease.</div>
+            {% endif %}
+            {% if missing %}
+            <div class="diff-row">
+              <span class="diff-row-lbl miss-lbl"><i class="fas fa-circle-plus"></i> Also typical:</span>
+              {% for s in missing %}<span class="diff-pill diff-missing">{{ s.replace('_',' ') }}</span>{% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+  {# ══ Info tabs ═══════════════════════════════════════════════ #}
+  <div class="card" style="margin-top:1.5rem">
+    <div class="tab-nav" id="tabNav">
+      <button class="tab-btn active" data-tab="tabMed"><i class="fas fa-pills"></i> Medications</button>
+      <button class="tab-btn" data-tab="tabPrec"><i class="fas fa-shield-halved"></i> Precautions</button>
+      <button class="tab-btn" data-tab="tabDiet"><i class="fas fa-apple-whole"></i> Diet</button>
+      <button class="tab-btn" data-tab="tabWork"><i class="fas fa-person-running"></i> Workout</button>
+      <button class="tab-btn" data-tab="tabHow"><i class="fas fa-microchip"></i> How It Works</button>
+    </div>
+
+    <div id="tabMed" class="tab-content active">
+      <div class="tab-note">
+        <i class="fas fa-circle-exclamation"></i>
+        General information only. Dosage and suitability must be confirmed by a licensed physician.
+      </div>
+      <div class="info-grid">
+        {% if r.info.medications %}
+          {% for m in r.info.medications %}
+          <div class="info-card"><i class="fas fa-pills" style="color:var(--green)"></i><span>{{ m }}</span></div>
+          {% endfor %}
+        {% else %}
+        <p class="empty-msg"><i class="fas fa-circle-info"></i> No medication data available.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="tabPrec" class="tab-content">
+      <div class="info-grid">
+        {% if r.info.precautions %}
+          {% for p in r.info.precautions %}
+          <div class="info-card"><i class="fas fa-shield-halved" style="color:var(--coral)"></i><span>{{ p }}</span></div>
+          {% endfor %}
+        {% else %}
+        <p class="empty-msg"><i class="fas fa-circle-info"></i> No precaution data available.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="tabDiet" class="tab-content">
+      <div class="info-grid">
+        {% if r.info.diets %}
+          {% for d in r.info.diets %}
+          <div class="info-card"><i class="fas fa-apple-whole" style="color:var(--amber)"></i><span>{{ d }}</span></div>
+          {% endfor %}
+        {% else %}
+        <p class="empty-msg"><i class="fas fa-circle-info"></i> No diet data available.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="tabWork" class="tab-content">
+      <div class="info-grid">
+        {% if r.info.workouts %}
+          {% for w in r.info.workouts %}
+          <div class="info-card"><i class="fas fa-person-running" style="color:var(--violet)"></i><span>{{ w }}</span></div>
+          {% endfor %}
+        {% else %}
+        <p class="empty-msg"><i class="fas fa-circle-info"></i> No workout data available.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="tabHow" class="tab-content">
+      <div class="analysis-grid">
+        <div class="ai-card">
+          <div class="ai-icon-wrap" style="background:var(--green-lt)">
+            <i class="fas fa-layer-group" style="color:var(--green)"></i>
+          </div>
+          <h4>Ensemble Soft Voting</h4>
+          <p>Three models vote on your symptoms: Random Forest (50%), SVM (35%), and Naive Bayes (15%). The weighted average of their probability outputs decides the final prediction — more robust than any single model.</p>
+        </div>
+        <div class="ai-card">
+          <div class="ai-icon-wrap" style="background:var(--green-lt)">
+            <i class="fas fa-weight-hanging" style="color:var(--green)"></i>
+          </div>
+          <h4>Severity-Weighted Features</h4>
+          <p>Each symptom is multiplied by its clinical severity weight (1–7) before prediction. Chest pain influences the result far more than mild itching — making predictions clinically smarter.</p>
+        </div>
+        <div class="ai-card">
+          <div class="ai-icon-wrap" style="background:var(--amber-lt)">
+            <i class="fas fa-sliders" style="color:var(--amber)"></i>
+          </div>
+          <h4>Dynamic Threshold</h4>
+          <p>Your severity score was {{ r.severity_score }} ({{ r.severity_label }}), so the system required {{ r.threshold_used }}% confidence.
+             Your prediction was {{ "%.1f"|format(r.confidence) }}%.
+             Higher severity = higher required confidence before results appear without a doctor advisory.</p>
+        </div>
+        <div class="ai-card">
+          <div class="ai-icon-wrap" style="background:var(--violet-lt)">
+            <i class="fas fa-dna" style="color:var(--violet)"></i>
+          </div>
+          <h4>Differential Diagnosis</h4>
+          <p>Each top-5 disease now shows which of your symptoms specifically point toward it — colour-coded by strength. Green = strong match (≥70% of that disease's training rows), blue = moderate, grey = weak.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Bottom action row ─────────────────────────────────────── #}
+  <div class="result-bottom-bar">
+    <a href="{{ url_for('index') }}" class="btn btn-ghost">
+      <i class="fas fa-arrow-left"></i> New Diagnosis
+    </a>
+  </div>
+
+</div>
+
+{# Embed result as JS for PDF download + re-diagnose #}
+<script>
+const RESULT   = {{ r | tojson }};
+const ALL_SYMS = {{ all_symptoms | tojson }};
+</script>
+
+{# ══ RE-DIAGNOSE OVERLAY ══════════════════════════════════ #}
+<div class="rediag-overlay" id="rediagOverlay">
+  <div class="rediag-box">
+    <div class="rediag-head">
+      <div>
+        <h3><i class="fas fa-rotate"></i> Add Symptoms &amp; Re-analyse</h3>
+        <p>Your existing symptoms are kept. Search and add new ones below, set their duration, then re-run.</p>
+      </div>
+      <button class="rediag-close" onclick="closeRediagnose()"><i class="fas fa-xmark"></i></button>
+    </div>
+
+    {# Current symptoms list #}
+    <div class="rediag-current" id="rediagCurrent"></div>
+
+    {# New symptom label #}
+    <div class="rediag-new-label"><i class="fas fa-plus-circle"></i> Add new symptoms</div>
+
+    {# Search #}
+    <div class="rediag-search-wrap">
+      <i class="fas fa-search" style="position:absolute;left:.9rem;top:50%;transform:translateY(-50%);color:var(--text-3)"></i>
+      <input id="rediagSearch" type="text" class="rediag-search"
+             placeholder="Search symptoms to add…"
+             autocomplete="off"
+             oninput="rediagSearchSymptoms(this.value)"
+             onkeydown="rediagHandleKey(event)"/>
+      <div class="autocomplete-list" id="rediagAcList"></div>
+    </div>
+
+    {# New symptoms with duration #}
+    <div class="rediag-new-area" id="rediagNewArea">
+      <span class="rediag-empty-hint">New symptoms will appear here — each can have its own duration</span>
+    </div>
+
+    <div class="rediag-actions">
+      <button class="btn btn-primary" onclick="runRediagnose()" id="rediagBtn">
+        <i class="fas fa-brain"></i> Re-analyse
+      </button>
+      <button class="btn btn-ghost" onclick="closeRediagnose()">
+        <i class="fas fa-xmark"></i> Cancel
+      </button>
+    </div>
+
+    <div class="loader" id="rediagLoader" style="display:none;margin-top:1rem">
+      <div class="spinner"></div>
+      <span>Re-analysing with new symptoms…</span>
+    </div>
+  </div>
+</div>
+
+{# Hidden nav form #}
+<form id="rediagNav" method="POST" action="/result" style="display:none">
+  <input type="hidden" id="rediagNavJson" name="result_json" value=""/>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Tab switching ────────────────────────────────────────────
+document.getElementById('tabNav').addEventListener('click', function(e) {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  const tabId = btn.dataset.tab;
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#tabNav .tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  btn.classList.add('active');
+});
+
+// ── Animate bars on page load + sort top5 by match% ─────────
+window.addEventListener('DOMContentLoaded', () => {
+  // Confidence bar
+  setTimeout(() => {
+    const bar = document.getElementById('rhConfBar');
+    if (bar) bar.style.width = bar.dataset.w + '%';
+  }, 120);
+
+  // Sort top5 items by match_pct descending, then animate bars
+  const list = document.getElementById('top5List');
+  if (list) {
+    const items = [...list.querySelectorAll('.top5-item')];
+    items.sort((a, b) => parseFloat(b.dataset.prob || 0) - parseFloat(a.dataset.prob || 0));
+    // Re-append in new order + update rank numbers and styles
+    items.forEach((item, idx) => {
+      list.appendChild(item);
+      const rankEl = item.querySelector('.top5-rank-num');
+      // Primary prediction (from model) always gets trophy if it lands at rank 1
+      const isPrimary = item.dataset.primary === 'true';
+      item.classList.remove('top5-winner');
+      if (rankEl) {
+        if (idx === 0) {
+          rankEl.innerHTML = '<i class="fas fa-trophy"></i>';
+          item.classList.add('top5-winner');
+        } else {
+          rankEl.textContent = idx + 1;
+        }
+      }
+      const pctEl = item.querySelector('.top5-pct');
+      if (idx === 0 && pctEl) pctEl.classList.add('top5-pct-winner');
+      else if (pctEl) pctEl.classList.remove('top5-pct-winner');
+      // Add/remove primary tag
+      const nameWrap = item.querySelector('.top5-name-wrap');
+      const existing = nameWrap?.querySelector('.top5-primary-tag');
+      if (existing) existing.remove();
+      if (idx === 0 && nameWrap) {
+        const tag = document.createElement('span');
+        tag.className = 'top5-primary-tag';
+        tag.textContent = isPrimary ? 'Primary prediction · best match' : 'Best symptom match';
+        nameWrap.appendChild(tag);
+      }
+    });
+  }
+
+  // Animate top-5 bars after sort
+  setTimeout(() => {
+    document.querySelectorAll('.top5-bar[data-w]').forEach(b => {
+      b.style.width = b.dataset.w + '%';
+    });
+  }, 250);
+});
+
+// ── Toggle differential body ─────────────────────────────────
+function toggleDiff(itemEl) {
+  const body    = itemEl.querySelector('.diff-body');
+  const chevron = itemEl.querySelector('.top5-chevron');
+  if (!body) return;
+  const open = body.classList.toggle('open');
+  if (chevron) chevron.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+// ── Post-result suggestion chips ─────────────────────────────
+// Chips are added to a staged Set; user can then directly re-analyse
+let _stagedSugs = new Set();
+
+function addPostSug(btnEl, sym) {
+  // Toggle: if already staged, un-stage it
+  if (_stagedSugs.has(sym)) {
+    _stagedSugs.delete(sym);
+    btnEl.classList.remove('psc-selected');
+    btnEl.querySelector('.psc-plus i').className = 'fas fa-plus';
+  } else {
+    _stagedSugs.add(sym);
+    btnEl.classList.add('psc-selected');
+    btnEl.querySelector('.psc-plus i').className = 'fas fa-check';
+  }
+  _updatePostSugCta();
+}
+
+function _updatePostSugCta() {
+  const cta     = document.getElementById('postSugCta');
+  const addedRow = document.getElementById('postSugAddedRow');
+  if (!cta) return;
+  if (_stagedSugs.size === 0) {
+    cta.style.display = 'none';
+    return;
+  }
+  cta.style.display = 'flex';
+  addedRow.innerHTML = [..._stagedSugs].map(s =>
+    `<span class="post-sug-staged-pill">${escHtml(s.replace(/_/g,' '))}</span>`
+  ).join('');
+}
+
+function runWithSuggestions() {
+  if (_stagedSugs.size === 0) return;
+  // Pre-load staged symptoms into rediag, then open overlay
+  openRediagnose([..._stagedSugs]);
+}
+
+// ── PDF Download ─────────────────────────────────────────────
+async function downloadPDF() {
+  const btn = document.getElementById('pdfBtn');
+  if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating…'; btn.disabled = true; }
+  try {
+    const r = await fetch('/download_pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(RESULT)
+    });
+    if (!r.ok) { toast('PDF generation failed.', 'error'); return; }
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = 'CareSense_' + (RESULT.disease || 'report').replace(/\s+/g, '_') + '.pdf';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('PDF downloaded!', 'success');
+  } catch (e) {
+    toast('PDF generation failed.', 'error');
+  } finally {
+    if (btn) { btn.innerHTML = '<i class="fas fa-file-pdf"></i> PDF'; btn.disabled = false; }
+  }
+}
+
+// ── Re-diagnose overlay ──────────────────────────────────────
+let rediagNew = new Set();
+let rediagDur = {};
+const DURATIONS = ['hours','days','weeks','chronic'];
+const DUR_LABEL = { hours:'Hours', days:'Days', weeks:'Weeks', chronic:'Months+' };
+
+function openRediagnose(preload = []) {
+  rediagNew.clear(); rediagDur = {};
+  // Render existing symptoms as read-only pills
+  const cur = document.getElementById('rediagCurrent');
+  const syms = RESULT.selected_symptoms || [];
+  if (syms.length) {
+    cur.innerHTML = '<div class="rediag-cur-label"><i class="fas fa-lock"></i> Current symptoms (kept)</div>' +
+      '<div class="rediag-cur-pills">' +
+      syms.map(s => `<span class="rediag-cur-pill">${escHtml(s.replace(/_/g,' '))}</span>`).join('') +
+      '</div>';
+  } else {
+    cur.innerHTML = '';
+  }
+  // Add pre-loaded symptoms AFTER clear (this is the fix — preload comes after clear)
+  preload.forEach(s => {
+    const existing = new Set(RESULT.selected_symptoms || []);
+    if (!existing.has(s) && !rediagNew.has(s)) {
+      rediagNew.add(s);
+      rediagDur[s] = 'days';
+    }
+  });
+  renderRediagNew();
+  document.getElementById('rediagOverlay').classList.add('open');
+  document.getElementById('rediagSearch').focus();
+}
+
+function closeRediagnose() {
+  document.getElementById('rediagOverlay').classList.remove('open');
+  document.getElementById('rediagAcList').style.display = 'none';
+  document.getElementById('rediagSearch').value = '';
+}
+
+function rediagAddSym(sym) {
+  sym = String(sym).trim();
+  if (!sym) return;
+  const existing = new Set(RESULT.selected_symptoms || []);
+  if (existing.has(sym)) { toast('Already in current symptoms.','info'); return; }
+  if (rediagNew.has(sym)) { toast('Already added.','info'); return; }
+  rediagNew.add(sym);
+  rediagDur[sym] = 'days';
+  renderRediagNew();
+  document.getElementById('rediagSearch').value = '';
+  document.getElementById('rediagAcList').style.display = 'none';
+}
+
+function renderRediagNew() {
+  const area = document.getElementById('rediagNewArea');
+  if (rediagNew.size === 0) {
+    area.innerHTML = '<span class="rediag-empty-hint">New symptoms will appear here — each can have its own duration</span>';
+    return;
+  }
+  area.innerHTML = '';
+  rediagNew.forEach(s => {
+    const wrap = document.createElement('div');
+    wrap.className = 'dur-tag';
+
+    const top = document.createElement('div');
+    top.className = 'dur-tag-top';
+    const txt = document.createElement('span');
+    txt.className = 'dur-tag-name'; txt.textContent = s.replace(/_/g,' ');
+    const rm = document.createElement('button');
+    rm.type='button'; rm.innerHTML='<i class="fas fa-xmark"></i>';
+    rm.addEventListener('click', () => { rediagNew.delete(s); delete rediagDur[s]; renderRediagNew(); });
+    top.appendChild(txt); top.appendChild(rm);
+
+    const dur = document.createElement('div');
+    dur.className = 'dur-sel';
+    DURATIONS.forEach(d => {
+      const btn = document.createElement('button');
+      btn.type='button';
+      btn.className = 'dur-btn' + (rediagDur[s]===d?' active':'');
+      btn.textContent = DUR_LABEL[d];
+      btn.addEventListener('click', () => {
+        rediagDur[s]=d;
+        dur.querySelectorAll('.dur-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+      dur.appendChild(btn);
+    });
+
+    wrap.appendChild(top); wrap.appendChild(dur);
+    area.appendChild(wrap);
+  });
+}
+
+function rediagSearchSymptoms(q) {
+  const list  = document.getElementById('rediagAcList');
+  const query = q.trim().toLowerCase();
+  if (!query) { list.style.display='none'; return; }
+  const existing = new Set([...(RESULT.selected_symptoms||[]), ...rediagNew]);
+  const matches = ALL_SYMS.filter(s =>
+    !existing.has(s) &&
+    (s.toLowerCase().replace(/_/g,' ').includes(query) || s.toLowerCase().includes(query.replace(/ /g,'_')))
+  ).slice(0,10);
+  if (!matches.length) { list.style.display='none'; return; }
+  list.innerHTML = matches.map(s =>
+    `<div class="ac-item" data-sym="${escAttr(s)}">${escHtml(s.replace(/_/g,' '))}</div>`
+  ).join('');
+  list.style.display='block';
+}
+
+function rediagHandleKey(e) {
+  if (e.key==='Enter') {
+    const first = document.querySelector('#rediagAcList .ac-item');
+    if (first?.dataset.sym) rediagAddSym(first.dataset.sym);
+    e.preventDefault();
+  }
+  if (e.key==='Escape') document.getElementById('rediagAcList').style.display='none';
+}
+
+document.getElementById('rediagAcList').addEventListener('click', e => {
+  const item = e.target.closest('.ac-item');
+  if (item?.dataset.sym) rediagAddSym(item.dataset.sym);
+});
+
+async function runRediagnose() {
+  const prevSyms = RESULT.selected_symptoms || [];
+  const allSyms  = [...prevSyms, ...rediagNew];
+  if (allSyms.length === prevSyms.length && rediagNew.size === 0) {
+    toast('Add at least one new symptom to re-analyse.','info'); return;
+  }
+  // Merge duration weights: existing ones from RESULT + new ones
+  const mergedDur = { ...(RESULT.duration_weights||{}), ...rediagDur };
+  const riskFac   = RESULT.risk_factors || {};
+
+  document.getElementById('rediagBtn').disabled = true;
+  document.getElementById('rediagLoader').style.display = 'flex';
+
+  try {
+    const r = await fetch('/predict', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        symptoms:         allSyms,
+        duration_weights: mergedDur,
+        risk_factors:     riskFac,
+      })
+    });
+    const d = await r.json();
+    if (d.error) { toast(d.error,'error'); return; }
+    d.rediagnosed = true;
+    document.getElementById('rediagNavJson').value = JSON.stringify(d);
+    document.getElementById('rediagNav').submit();
+  } catch(e) {
+    toast('Network error — please try again.','error');
+  } finally {
+    document.getElementById('rediagBtn').disabled = false;
+    document.getElementById('rediagLoader').style.display = 'none';
+  }
+}
+
+// Close overlay on backdrop click
+document.getElementById('rediagOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('rediagOverlay')) closeRediagnose();
+});
+
+// Helper
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escAttr(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function toast(msg, type='info') {
+  const icons = {error:'circle-xmark', success:'circle-check', info:'circle-info'};
+  const t = document.createElement('div');
+  t.className = 'toast toast-' + type;
+  t.innerHTML = '<i class="fas fa-' + (icons[type]||'circle-info') + '"></i> ' + escHtml(msg);
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { requestAnimationFrame(() => t.classList.add('show')); });
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3800);
+}
+</script>
+{% endblock %}

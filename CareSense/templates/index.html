@@ -1,0 +1,710 @@
+{% extends "base.html" %}
+{% block title %}CareSense — AI-Powered Disease Diagnosis{% endblock %}
+
+{% block content %}
+
+{# HERO #}
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <div class="hero-pill"><i class="fas fa-circle-check"></i> AI-Powered Symptom Analysis</div>
+      <h1>Your Symptoms,<br><em>Understood.</em></h1>
+      <p class="hero-sub">Severity-weighted ensemble ML across 41 diseases. Body map selection, duration inputs, and risk profiling for a smarter, more personalised diagnosis.</p>
+      <div class="hero-stats">
+        <div><span class="hero-stat-num">41</span><span class="hero-stat-lbl">Diseases</span></div>
+        <div><span class="hero-stat-num">132</span><span class="hero-stat-lbl">Symptoms</span></div>
+        <div><span class="hero-stat-num">3</span><span class="hero-stat-lbl">Models</span></div>
+      </div>
+      <div class="hero-features">
+        <span class="hero-feat"><i class="fas fa-person"></i> Body Map</span>
+        <span class="hero-feat"><i class="fas fa-clock"></i> Duration Input</span>
+        <span class="hero-feat"><i class="fas fa-user-shield"></i> Risk Profiling</span>
+        <span class="hero-feat"><i class="fas fa-layer-group"></i> Ensemble Voting</span>
+        <span class="hero-feat"><i class="fas fa-triangle-exclamation"></i> Emergency Detection</span>
+        <span class="hero-feat"><i class="fas fa-ranking-star"></i> Differential Diagnosis</span>
+      </div>
+    </div>
+    <div class="hero-art">
+      <div class="hero-ring"><div class="hero-ring-inner"><i class="fas fa-dna hero-ring-icon"></i></div></div>
+    </div>
+  </div>
+</section>
+
+<div class="page-wrap">
+
+{# ══ INPUT CARD ════════════════════════════════════════════ #}
+<div class="input-card" id="inputCard">
+
+  {# ── Card header ─────────────────────────────────────────── #}
+  <div class="input-card-header">
+    <div class="input-card-title">
+      <div class="input-card-icon"><i class="fas fa-stethoscope"></i></div>
+      <div>
+        <h2>Symptom Checker</h2>
+        <p>Select symptoms, set how long you've had each, then analyse.</p>
+      </div>
+    </div>
+    <div class="input-steps">
+      <div class="input-step active" id="step1"><span class="step-num">1</span><span class="step-lbl">Symptoms</span></div>
+      <div class="input-step-arrow"><i class="fas fa-chevron-right"></i></div>
+      <div class="input-step" id="step2"><span class="step-num">2</span><span class="step-lbl">Duration</span></div>
+      <div class="input-step-arrow"><i class="fas fa-chevron-right"></i></div>
+      <div class="input-step" id="step3"><span class="step-num">3</span><span class="step-lbl">Analyse</span></div>
+    </div>
+  </div>
+
+  {# ── Input method toggle ──────────────────────────────────── #}
+  <div class="input-seg">
+    <button class="seg-btn active" id="segSearch" onclick="switchInputMode('search')">
+      <i class="fas fa-keyboard"></i> Type / Search
+    </button>
+    <button class="seg-btn" id="segBodymap" onclick="switchInputMode('bodymap')">
+      <i class="fas fa-person"></i> Body Map
+    </button>
+  </div>
+
+  {# ── Search mode ─────────────────────────────────────────── #}
+  <div id="modeSearch">
+    <div class="search-wrap">
+      <i class="fas fa-search search-icon"></i>
+      <input id="symSearch" type="text" class="search-input"
+             placeholder="Search symptoms — e.g. fever, chest pain, joint pain…"
+             autocomplete="off"
+             oninput="searchSymptoms(this.value)"
+             onkeydown="handleKey(event)"/>
+      <span class="search-kbd">↵ to add</span>
+      <div class="autocomplete-list" id="acList"></div>
+    </div>
+
+    {# Quick-add chips organised by category #}
+    <div class="quick-groups">
+      <div class="quick-group">
+        <span class="quick-lbl"><i class="fas fa-bolt"></i> Common</span>
+        {% for s in ['fever','headache','fatigue','nausea','cough','dizziness'] %}
+        <button class="chip" data-sym="{{ s }}">{{ s.replace('_',' ') }}</button>
+        {% endfor %}
+      </div>
+      <div class="quick-group">
+        <span class="quick-lbl"><i class="fas fa-heart"></i> Pain</span>
+        {% for s in ['chest_pain','back_pain','abdominal_pain','joint_pain','muscle_weakness'] %}
+        <button class="chip" data-sym="{{ s }}">{{ s.replace('_',' ') }}</button>
+        {% endfor %}
+      </div>
+      <div class="quick-group">
+        <span class="quick-lbl"><i class="fas fa-lungs"></i> Other</span>
+        {% for s in ['vomiting','skin_rash','breathlessness','sweating','loss_of_appetite'] %}
+        <button class="chip" data-sym="{{ s }}">{{ s.replace('_',' ') }}</button>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Body map mode ───────────────────────────────────────── #}
+  <div id="modeBodymap" style="display:none">
+    <div class="bodymap-wrap">
+      <div class="bodymap-figure">
+        <svg viewBox="0 0 120 260" class="body-svg">
+          <ellipse cx="60" cy="22" rx="17" ry="20" class="bz" data-region="Head &amp; Eyes"/>
+          <rect x="46" y="42" width="28" height="16" rx="6" class="bz" data-region="Face &amp; Throat"/>
+          <rect x="53" y="58" width="14" height="12" rx="3" class="bz" data-region="Neck &amp; Back"/>
+          <rect x="35" y="70" width="50" height="50" rx="8" class="bz" data-region="Chest"/>
+          <rect x="35" y="120" width="50" height="40" rx="6" class="bz" data-region="Abdomen"/>
+          <rect x="14" y="72" width="20" height="65" rx="8" class="bz" data-region="Arms &amp; Hands"/>
+          <rect x="86" y="72" width="20" height="65" rx="8" class="bz" data-region="Arms &amp; Hands"/>
+          <rect x="35" y="162" width="22" height="80" rx="8" class="bz" data-region="Legs &amp; Feet"/>
+          <rect x="63" y="162" width="22" height="80" rx="8" class="bz" data-region="Legs &amp; Feet"/>
+          <rect x="10" y="8" width="100" height="236" rx="14" class="bz bz-skin" data-region="Skin"/>
+          <ellipse cx="60" cy="155" rx="16" ry="9" class="bz bz-uri" data-region="Urinary"/>
+          <rect x="88" y="8" width="26" height="20" rx="5" class="bz bz-gen" data-region="General"/>
+          <text x="60" y="17" class="bl">Head</text>
+          <text x="60" y="52" class="bl">Face</text>
+          <text x="60" y="83" class="bl">Chest</text>
+          <text x="60" y="142" class="bl">Abdomen</text>
+          <text x="24" y="107" class="bl">Arm</text>
+          <text x="96" y="107" class="bl">Arm</text>
+          <text x="46" y="210" class="bl">Leg</text>
+          <text x="74" y="210" class="bl">Leg</text>
+          <text x="101" y="22" class="bl bl-gen">Gen.</text>
+        </svg>
+      </div>
+      <div class="bodymap-panel">
+        <div class="bodymap-hint"><i class="fas fa-hand-pointer"></i> Tap a region on the figure</div>
+        <div class="bodymap-region-name" id="bmRegionName">No region selected</div>
+        <div class="bodymap-symptom-list" id="bmSymList">
+          <p style="color:var(--text-3);font-size:.82rem">Select a region to see its symptoms.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Selected symptom cards ───────────────────────────────── #}
+  <div class="sym-section" id="symSection" style="display:none">
+    <div class="sym-section-head">
+      <span class="sym-section-title"><i class="fas fa-list-check"></i> Selected Symptoms</span>
+      <span class="sym-counter" id="symCounter">0 / 17</span>
+    </div>
+    <div class="sym-cards" id="symCards"></div>
+  </div>
+
+  {# ── Empty state (no symptoms yet) ───────────────────────── #}
+  <div class="sym-empty" id="symEmpty">
+    <i class="fas fa-circle-plus"></i>
+    <span>Search or tap a body region to add your first symptom</span>
+  </div>
+
+  {# ── Smart suggestions strip ─────────────────────────────── #}
+  <div class="suggestions-strip" id="sugStrip">
+    <span class="sug-label"><i class="fas fa-lightbulb"></i> Also common with your symptoms:</span>
+    <div class="suggestions-row" id="sugRow"></div>
+  </div>
+
+  {# ── Risk factors ─────────────────────────────────────────── #}
+  <div class="risk-bar" id="riskBar">
+    <div class="risk-bar-head" onclick="toggleRiskPanel()">
+      <div class="risk-bar-left">
+        <i class="fas fa-user-shield" style="color:var(--green);font-size:.9rem"></i>
+        <span>Risk Factors</span>
+        <span class="risk-optional">optional · improves accuracy</span>
+        <span class="risk-count-badge" id="riskCountBadge" style="display:none">0</span>
+      </div>
+      <div class="risk-bar-right">
+        <span class="risk-bar-hint" id="riskBarHint">None set</span>
+        <i class="fas fa-chevron-down risk-toggle-btn" id="riskChevron"></i>
+      </div>
+    </div>
+    <div class="risk-panel" id="riskPanel">
+      <div class="risk-panel-inner">
+        <div class="risk-field">
+          <label class="risk-lbl"><i class="fas fa-cake-candles"></i> Age Group</label>
+          <div class="risk-chips" id="ageChips">
+            <button class="risk-chip" data-key="age_group" data-val="under-18">Under 18</button>
+            <button class="risk-chip" data-key="age_group" data-val="18-30">18–30</button>
+            <button class="risk-chip" data-key="age_group" data-val="31-50">31–50</button>
+            <button class="risk-chip" data-key="age_group" data-val="51-70">51–70</button>
+            <button class="risk-chip" data-key="age_group" data-val="70+">70+</button>
+          </div>
+        </div>
+        <div class="risk-field">
+          <label class="risk-lbl"><i class="fas fa-notes-medical"></i> Medical Conditions</label>
+          <div class="risk-chips">
+            <button class="risk-chip risk-toggle" data-key="diabetic">
+              <i class="fas fa-droplet"></i> Diabetic
+            </button>
+            <button class="risk-chip risk-toggle" data-key="hypertensive">
+              <i class="fas fa-heart-pulse"></i> Hypertensive
+            </button>
+            <button class="risk-chip risk-toggle" data-key="smoker">
+              <i class="fas fa-smoking"></i> Smoker
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Actions ──────────────────────────────────────────────── #}
+  <div class="input-actions">
+    <button class="btn-analyse" id="diagnoseBtn" onclick="runPrediction()">
+      <span class="btn-analyse-inner">
+        <i class="fas fa-brain"></i>
+        <span id="analyseLabel">Analyse Symptoms</span>
+      </span>
+      <span class="btn-analyse-count" id="analyseCount" style="display:none">
+        <span id="analyseCountNum">0</span> symptoms
+      </span>
+    </button>
+    <button class="btn-clear" id="clearBtn" onclick="clearAll()" style="display:none">
+      <i class="fas fa-rotate-left"></i> Clear
+    </button>
+  </div>
+
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <span>Analysing with severity-weighted ensemble ML…</span>
+  </div>
+
+</div>
+
+{# EMERGENCY SCREEN #}
+<div class="emergency-screen" id="emergencyScreen">
+  <div class="emergency-box">
+    <div class="emer-ring"><i class="fas fa-ambulance"></i></div>
+    <h2>Emergency Alert</h2>
+    <p class="emer-msg" id="emerMsg">Critical symptom combination detected.</p>
+    <div class="emer-actions">
+      <a href="tel:112" class="btn-emer"><i class="fas fa-phone"></i> Call 112 Now</a>
+      <button class="btn-emer-sec" onclick="dismissEmergency()">
+        <i class="fas fa-chevron-right"></i> View AI Analysis
+      </button>
+    </div>
+    <p class="emer-note">Your symptoms match a critical pattern. Please seek immediate care. The AI analysis below is for reference only and does not replace emergency response.</p>
+  </div>
+</div>
+
+{# FOLLOW-UP OVERLAY #}
+<div class="followup-overlay" id="followupOverlay">
+  <div class="followup-box">
+    <div class="followup-top">
+      <div class="followup-icon-wrap"><i class="fas fa-clipboard-question"></i></div>
+      <div>
+        <h3>Validation Questions</h3>
+        <p>Initial prediction: <strong class="followup-disease-name" id="fuDisease"></strong><br>
+           Do you also experience any of these symptoms?</p>
+      </div>
+    </div>
+    <div class="followup-qs" id="fuQs"></div>
+    <div class="followup-hint">
+      <i class="fas fa-info-circle"></i>
+      Confirming additional symptoms improves accuracy. You can skip if unsure.
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="submitFollowup()">
+        <i class="fas fa-check"></i> Confirm &amp; Re-analyse
+      </button>
+      <button class="btn btn-ghost" onclick="skipFollowup()">
+        <i class="fas fa-forward"></i> Skip
+      </button>
+    </div>
+  </div>
+</div>
+
+{# Hidden form for POST navigation to /result #}
+<form id="resultNav" method="POST" action="/result" style="display:none">
+  <input type="hidden" id="resultNavJson" name="result_json" value=""/>
+</form>
+
+</div>{# /page-wrap #}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const BODY_REGIONS = {{ body_regions | tojson }};
+
+// ── State ────────────────────────────────────────────────
+let selected        = new Set();
+let durationWeights = {};
+let riskFactors     = {};
+let lastResult      = null;
+let followupData    = null;
+
+// ── Input mode toggle ────────────────────────────────────
+function switchInputMode(mode) {
+  document.getElementById('modeSearch').style.display  = mode === 'search'  ? 'block' : 'none';
+  document.getElementById('modeBodymap').style.display = mode === 'bodymap' ? 'block' : 'none';
+  document.getElementById('segSearch').classList.toggle('active', mode === 'search');
+  document.getElementById('segBodymap').classList.toggle('active', mode === 'bodymap');
+}
+
+// ── Body Map ─────────────────────────────────────────────
+document.querySelectorAll('.bz').forEach(zone => {
+  zone.addEventListener('click', () => {
+    const region = zone.dataset.region;
+    document.querySelectorAll('.bz').forEach(z => z.classList.remove('bz-active'));
+    document.querySelectorAll(`.bz[data-region="${CSS.escape(region)}"]`).forEach(z => z.classList.add('bz-active'));
+    showRegionSymptoms(region);
+  });
+});
+
+function showRegionSymptoms(region) {
+  const syms = BODY_REGIONS[region] || [];
+  document.getElementById('bmRegionName').textContent = region;
+  const list = document.getElementById('bmSymList');
+  if (!syms.length) {
+    list.innerHTML = '<p style="color:var(--text-3);font-size:.82rem">No symptoms mapped to this region.</p>';
+    return;
+  }
+  list.innerHTML = syms.map(s => {
+    const already = selected.has(s);
+    return `<button class="bm-sym-btn${already ? ' bm-added' : ''}" data-sym="${escAttr(s)}" onclick="bmAdd('${escAttr(s)}')">
+      <i class="fas ${already ? 'fa-check' : 'fa-plus'}"></i> ${s.replace(/_/g,' ')}
+    </button>`;
+  }).join('');
+}
+
+function bmAdd(sym) {
+  addSymptom(sym);
+  const region = document.getElementById('bmRegionName').textContent;
+  if (region && region !== 'No region selected') showRegionSymptoms(region);
+}
+
+// ── Risk Factors ─────────────────────────────────────────
+function toggleRiskPanel() {
+  const panel   = document.getElementById('riskPanel');
+  const chevron = document.getElementById('riskChevron');
+  const isOpen  = panel.classList.toggle('open');
+  chevron.style.transform = isOpen ? 'rotate(180deg)' : '';
+}
+
+document.querySelectorAll('.risk-chip[data-val]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.risk-chip[data-key="age_group"]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    riskFactors.age_group = btn.dataset.val;
+    updateRiskBadge();
+  });
+});
+
+document.querySelectorAll('.risk-chip.risk-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    btn.classList.toggle('active');
+    const key = btn.dataset.key;
+    if (btn.classList.contains('active')) riskFactors[key] = true;
+    else delete riskFactors[key];
+    updateRiskBadge();
+  });
+});
+
+function updateRiskBadge() {
+  const count  = Object.keys(riskFactors).length;
+  const bar    = document.getElementById('riskBar');
+  const badge  = document.getElementById('riskCountBadge');
+  const hint   = document.getElementById('riskBarHint');
+  bar.classList.toggle('risk-bar-active', count > 0);
+  if (count > 0) {
+    badge.style.display = 'inline-flex';
+    badge.textContent   = count;
+    const parts = [];
+    if (riskFactors.age_group) parts.push(riskFactors.age_group);
+    if (riskFactors.diabetic)  parts.push('Diabetic');
+    if (riskFactors.hypertensive) parts.push('Hypertensive');
+    if (riskFactors.smoker)    parts.push('Smoker');
+    hint.textContent = parts.join(' · ');
+    hint.style.color = 'var(--green)';
+  } else {
+    badge.style.display = 'none';
+    hint.textContent    = 'None set';
+    hint.style.color    = '';
+  }
+}
+
+// ── Duration Weights ─────────────────────────────────────
+const DUR_OPTIONS = ['hours','days','weeks','chronic'];
+const DUR_LABELS  = {hours:'Hours', days:'Days', weeks:'Weeks', chronic:'Months+'};
+const DUR_ICONS   = {hours:'fa-hourglass-start', days:'fa-calendar-day', weeks:'fa-calendar-week', chronic:'fa-calendar'};
+
+// ── Symptom Management ───────────────────────────────────
+function addSymptom(sym) {
+  sym = String(sym).trim();
+  if (!sym) return;
+  if (selected.has(sym)) { toast('Already added: ' + sym.replace(/_/g,' '), 'info'); return; }
+  if (selected.size >= 17) { toast('Maximum of 17 symptoms reached.', 'info'); return; }
+  selected.add(sym);
+  durationWeights[sym] = 'days';
+  renderSymCards();
+  document.getElementById('symSearch').value = '';
+  document.getElementById('acList').style.display = 'none';
+  fetchSuggestions();
+  updateSteps();
+}
+
+function removeSymptom(sym) {
+  selected.delete(sym);
+  delete durationWeights[sym];
+  renderSymCards();
+  if (selected.size > 0) fetchSuggestions();
+  else document.getElementById('sugStrip').style.display = 'none';
+  updateSteps();
+}
+
+function setDuration(sym, dur) {
+  durationWeights[sym] = dur;
+  // Update active state on buttons inside this card
+  const card = document.querySelector(`.sym-card[data-sym="${CSS.escape(sym)}"]`);
+  if (!card) return;
+  card.querySelectorAll('.sc-dur-btn').forEach(b => b.classList.toggle('active', b.dataset.dur === dur));
+  // Update the tag label too
+  const lbl = card.querySelector('.sc-dur-active');
+  if (lbl) lbl.textContent = DUR_LABELS[dur];
+}
+
+function renderSymCards() {
+  const section = document.getElementById('symSection');
+  const empty   = document.getElementById('symEmpty');
+  const cards   = document.getElementById('symCards');
+  const counter = document.getElementById('symCounter');
+  const clearBtn = document.getElementById('clearBtn');
+  const countNum = document.getElementById('analyseCountNum');
+  const countBadge = document.getElementById('analyseCount');
+
+  if (selected.size === 0) {
+    section.style.display = 'none';
+    empty.style.display   = 'flex';
+    clearBtn.style.display = 'none';
+    countBadge.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'flex';
+  empty.style.display   = 'none';
+  clearBtn.style.display = 'inline-flex';
+  counter.textContent   = `${selected.size} / 17`;
+  counter.style.color   = selected.size >= 15 ? 'var(--coral)' : selected.size >= 8 ? 'var(--amber)' : 'var(--green)';
+  countNum.textContent  = selected.size;
+  countBadge.style.display = 'flex';
+
+  cards.innerHTML = '';
+  selected.forEach(sym => {
+    const dur = durationWeights[sym] || 'days';
+    const card = document.createElement('div');
+    card.className = 'sym-card';
+    card.dataset.sym = sym;
+    card.innerHTML = `
+      <div class="sc-top">
+        <span class="sc-name">${sym.replace(/_/g,' ')}</span>
+        <button class="sc-remove" data-remove="${escAttr(sym)}" title="Remove">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div class="sc-dur-row">
+        <span class="sc-dur-lbl"><i class="fas fa-clock"></i></span>
+        ${DUR_OPTIONS.map(d => `
+          <button class="sc-dur-btn${d === dur ? ' active' : ''}"
+                  data-dur="${d}" data-sym="${escAttr(sym)}"
+                  onclick="setDuration('${escAttr(sym)}','${d}')">
+            ${DUR_LABELS[d]}
+          </button>`).join('')}
+      </div>`;
+    cards.appendChild(card);
+  });
+}
+
+// Delegated remove on sym-cards container
+document.getElementById('symCards').addEventListener('click', function(e) {
+  const rm = e.target.closest('[data-remove]');
+  if (rm) removeSymptom(rm.dataset.remove);
+});
+
+function clearAll() {
+  selected.clear();
+  durationWeights = {};
+  lastResult      = null;
+  followupData    = null;
+  renderSymCards();
+  document.getElementById('symSearch').value = '';
+  document.getElementById('acList').style.display   = 'none';
+  document.getElementById('sugStrip').style.display = 'none';
+  document.getElementById('emergencyScreen').style.display = 'none';
+  document.getElementById('followupOverlay').style.display = 'none';
+  updateSteps();
+}
+
+function updateSteps() {
+  const s1 = document.getElementById('step1');
+  const s2 = document.getElementById('step2');
+  const s3 = document.getElementById('step3');
+  if (selected.size === 0) {
+    s1.className = 'input-step active'; s2.className = 'input-step'; s3.className = 'input-step';
+  } else {
+    s1.className = 'input-step done';
+    s2.className = 'input-step active';
+    s3.className = 'input-step';
+  }
+}
+
+// ── Smart Suggestions ────────────────────────────────────
+async function fetchSuggestions() {
+  if (!selected.size) return;
+  try {
+    const r = await fetch('/suggestions', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({symptoms: [...selected]})
+    });
+    const sugs = await r.json();
+    renderSugChips(sugs, 'sugStrip', 'sugRow');
+  } catch (e) { /* silent */ }
+}
+
+function renderSugChips(sugs, stripId, rowId) {
+  const strip = document.getElementById(stripId);
+  const row   = document.getElementById(rowId);
+  if (!strip || !row) return;
+  const filtered = (sugs || []).filter(s => !selected.has(s));
+  if (!filtered.length) { strip.style.display = 'none'; return; }
+  row.innerHTML = filtered.map(s =>
+    `<button class="sug-chip" data-sym="${escAttr(s)}"><i class="fas fa-plus"></i> ${escHtml(s.replace(/_/g,' '))}</button>`
+  ).join('');
+  strip.style.display = 'flex';
+}
+
+// ── Main Prediction ──────────────────────────────────────
+async function runPrediction() {
+  if (!selected.size) { toast('Please select at least one symptom.', 'error'); return; }
+  // Mark step 3 active
+  document.getElementById('step2').className = 'input-step done';
+  document.getElementById('step3').className = 'input-step active';
+  setLoading(true);
+  followupData = null;
+  try {
+    const r = await fetch('/predict', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        symptoms:         [...selected],
+        duration_weights: durationWeights,
+        risk_factors:     riskFactors,
+      })
+    });
+    const d = await r.json();
+    if (d.error) { toast(d.error, 'error'); return; }
+    lastResult = d;
+    if (d.emergency) {
+      showEmergency(d.emergency_info);
+      if (d.followup_qs && d.followup_qs.length) followupData = d;
+    } else if (d.followup_qs && d.followup_qs.length) {
+      followupData = d;
+      showFollowup(d);
+    } else {
+      displayResults(d);
+    }
+  } catch (e) {
+    toast('Network error — please try again.', 'error');
+    console.error(e);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ── Emergency ────────────────────────────────────────────
+function showEmergency(info) {
+  document.getElementById('emerMsg').textContent = info.message || 'Critical symptom combination detected.';
+  document.getElementById('emergencyScreen').style.display = 'flex';
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function dismissEmergency() {
+  document.getElementById('emergencyScreen').style.display = 'none';
+  if (followupData && followupData.followup_qs && followupData.followup_qs.length) showFollowup(followupData);
+  else if (lastResult) displayResults(lastResult);
+}
+
+// ── Follow-up ────────────────────────────────────────────
+function showFollowup(d) {
+  document.getElementById('fuDisease').textContent = d.disease;
+  document.getElementById('fuQs').innerHTML = d.followup_qs.map(sym => {
+    const safe_id = 'fq_' + sym.replace(/\W/g,'_');
+    return `<label class="fq-item">
+      <div class="fq-checkbox">
+        <input type="checkbox" id="${safe_id}" value="${escAttr(sym)}"/>
+        <span class="fq-check"><i class="fas fa-check"></i></span>
+      </div>
+      <div>
+        <span class="fq-sym">${escHtml(sym.replace(/_/g,' '))}</span>
+        <span class="fq-ask">Are you experiencing this?</span>
+      </div>
+    </label>`;
+  }).join('');
+  document.getElementById('followupOverlay').style.display = 'flex';
+  document.getElementById('followupOverlay').scrollIntoView({behavior:'smooth'});
+}
+
+async function submitFollowup() {
+  const checked   = [...document.querySelectorAll('#fuQs input[type=checkbox]:checked')];
+  const confirmed = checked.map(cb => cb.value);
+  document.getElementById('followupOverlay').style.display = 'none';
+  setLoading(true);
+  try {
+    const r = await fetch('/followup', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        original_symptoms:  [...selected],
+        confirmed_symptoms: confirmed,
+        duration_weights:   durationWeights,
+        risk_factors:       riskFactors,
+      })
+    });
+    const d = await r.json();
+    confirmed.forEach(s => { selected.add(s); durationWeights[s] = durationWeights[s] || 'days'; });
+    renderSymCards();
+    lastResult = d; followupData = null;
+    if (d.emergency) showEmergency(d.emergency_info);
+    else displayResults(d);
+  } catch (e) {
+    toast('Error processing follow-up.', 'error');
+    if (lastResult) displayResults(lastResult);
+  } finally { setLoading(false); }
+}
+
+function skipFollowup() {
+  document.getElementById('followupOverlay').style.display = 'none';
+  followupData = null;
+  if (lastResult) displayResults(lastResult);
+}
+
+// ── Navigate to result page ──────────────────────────────
+function displayResults(d) {
+  document.getElementById('resultNavJson').value = JSON.stringify(d);
+  document.getElementById('resultNav').submit();
+}
+
+// ── Helpers ──────────────────────────────────────────────
+function setLoading(on) {
+  document.getElementById('loader').style.display = on ? 'flex' : 'none';
+  document.getElementById('diagnoseBtn').disabled  = on;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function escAttr(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function toast(msg, type='info') {
+  const icons = {error:'circle-xmark', success:'circle-check', info:'circle-info'};
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<i class="fas fa-${icons[type]||'circle-info'}"></i> ${escHtml(msg)}`;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { requestAnimationFrame(() => t.classList.add('show')); });
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3800);
+}
+
+// ── Search & Autocomplete ────────────────────────────────
+function searchSymptoms(q) {
+  const list  = document.getElementById('acList');
+  const query = q.trim().toLowerCase();
+  if (!query) { list.style.display = 'none'; return; }
+  const matches = ALL_SYMS.filter(s =>
+    s.toLowerCase().replace(/_/g,' ').includes(query) ||
+    s.toLowerCase().includes(query.replace(/ /g,'_'))
+  ).slice(0, 12);
+  if (!matches.length) { list.style.display = 'none'; return; }
+  list.innerHTML = matches.map(s =>
+    `<div class="ac-item" data-sym="${escAttr(s)}">${escHtml(s.replace(/_/g,' '))}</div>`
+  ).join('');
+  list.style.display = 'block';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter') {
+    const first = document.querySelector('#acList .ac-item');
+    if (first && first.dataset.sym) addSymptom(first.dataset.sym);
+    e.preventDefault();
+  }
+  if (e.key === 'Escape') document.getElementById('acList').style.display = 'none';
+}
+
+// ── Event Delegation ─────────────────────────────────────
+document.getElementById('acList').addEventListener('click', function(e) {
+  const item = e.target.closest('.ac-item');
+  if (item && item.dataset.sym) addSymptom(item.dataset.sym);
+});
+
+document.getElementById('sugRow').addEventListener('click', function(e) {
+  const btn = e.target.closest('.sug-chip');
+  if (btn && btn.dataset.sym) addSymptom(btn.dataset.sym);
+});
+
+document.querySelectorAll('.chip[data-sym]').forEach(btn => {
+  btn.addEventListener('click', () => addSymptom(btn.dataset.sym));
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) document.getElementById('acList').style.display = 'none';
+});
+
+document.getElementById('followupOverlay').addEventListener('click', function(e) {
+  if (e.target === this) skipFollowup();
+});
+</script>
+{% endblock %}

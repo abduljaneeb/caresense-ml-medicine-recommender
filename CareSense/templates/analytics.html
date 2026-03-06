@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+{% block title %}CareSense — Model Analytics{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div class="page-header-icon"><i class="fas fa-chart-line"></i></div>
+  <h1>Model <em>Analytics</em></h1>
+  <p>Training pipeline metrics, ensemble architecture, cross-validation scores, and visualisations across all 5 ML models.</p>
+</div>
+
+<div class="page-wrap">
+
+  {# ── Dataset overview strip ───────────────────────────────── #}
+  <div class="an-stat-strip">
+    <div class="an-stat">
+      <div class="an-stat-icon" style="background:var(--green-lt);color:var(--green)"><i class="fas fa-bacterium"></i></div>
+      <div><div class="an-stat-num">41</div><div class="an-stat-lbl">Disease Classes</div></div>
+    </div>
+    <div class="an-stat">
+      <div class="an-stat-icon" style="background:var(--amber-lt);color:var(--amber)"><i class="fas fa-list-check"></i></div>
+      <div><div class="an-stat-num">132</div><div class="an-stat-lbl">Symptom Features</div></div>
+    </div>
+    <div class="an-stat">
+      <div class="an-stat-icon" style="background:var(--violet-lt);color:var(--violet)"><i class="fas fa-database"></i></div>
+      <div><div class="an-stat-num">4,920</div><div class="an-stat-lbl">Training Records</div></div>
+    </div>
+    <div class="an-stat">
+      <div class="an-stat-icon" style="background:#dbeafe;color:#1d4ed8"><i class="fas fa-layer-group"></i></div>
+      <div><div class="an-stat-num">3</div><div class="an-stat-lbl">Ensemble Models</div></div>
+    </div>
+    <div class="an-stat">
+      <div class="an-stat-icon" style="background:var(--coral-lt);color:var(--coral)"><i class="fas fa-robot"></i></div>
+      <div><div class="an-stat-num">5</div><div class="an-stat-lbl">Total Models</div></div>
+    </div>
+    <div class="an-stat">
+      <div class="an-stat-icon" style="background:var(--green-lt);color:var(--green)"><i class="fas fa-shuffle"></i></div>
+      <div><div class="an-stat-num">10-fold</div><div class="an-stat-lbl">Cross-Validation</div></div>
+    </div>
+  </div>
+
+  {# ── Ensemble architecture ─────────────────────────────────── #}
+  <div class="section-head"><div class="section-bar"></div><h2>Ensemble Architecture</h2></div>
+  <div class="an-ensemble-card">
+    <div class="an-ensemble-diagram">
+      <div class="an-model-node">
+        <i class="fas fa-tree" style="color:#1d4ed8"></i>
+        <strong>Random Forest</strong>
+        <span>50% weight</span>
+        <div class="an-node-bar"><div style="width:50%;background:#1d4ed8"></div></div>
+      </div>
+      <div class="an-model-node">
+        <i class="fas fa-border-none" style="color:var(--violet)"></i>
+        <strong>SVM</strong>
+        <span>35% weight</span>
+        <div class="an-node-bar"><div style="width:35%;background:var(--violet)"></div></div>
+      </div>
+      <div class="an-model-node">
+        <i class="fas fa-bahai" style="color:var(--amber)"></i>
+        <strong>Naive Bayes</strong>
+        <span>15% weight</span>
+        <div class="an-node-bar"><div style="width:15%;background:var(--amber)"></div></div>
+      </div>
+      <div class="an-ensemble-arrow">
+        <i class="fas fa-arrows-to-circle"></i>
+        <span>Soft Vote</span>
+      </div>
+      <div class="an-ensemble-output">
+        <i class="fas fa-bullseye"></i>
+        <strong>Final Prediction</strong>
+        <span>Weighted probability average</span>
+      </div>
+    </div>
+    <div class="an-ensemble-desc">
+      <div class="an-ens-point">
+        <div class="an-ens-dot" style="background:#1d4ed8"></div>
+        <div>
+          <strong>Random Forest (50%)</strong>
+          <p>Highest weight — best cross-validation. Excels at non-linear symptom interactions and is robust to correlated features. 100 estimators, captures complex co-occurrence patterns.</p>
+        </div>
+      </div>
+      <div class="an-ens-point">
+        <div class="an-ens-dot" style="background:var(--violet)"></div>
+        <div>
+          <strong>SVM (35%)</strong>
+          <p>Strong on high-dimensional sparse binary features. The RBF kernel maps symptom vectors to a higher-dimensional space, finding non-linear decision boundaries between diseases.</p>
+        </div>
+      </div>
+      <div class="an-ens-point">
+        <div class="an-ens-dot" style="background:var(--amber)"></div>
+        <div>
+          <strong>Naive Bayes (15%)</strong>
+          <p>Fast probabilistic classifier. Adds calibrated probability diversity to the ensemble. Despite the independence assumption, performs well given severity-weighted features reduce correlated noise.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Model performance cards ───────────────────────────────── #}
+  <div class="section-head"><div class="section-bar"></div><h2>Individual Model Performance</h2></div>
+
+  <div class="an-model-grid">
+    {% set model_colors = {'Random Forest':'#1d4ed8','KNN':'#0a5c48','SVM':'#5b3f9e','Naive Bayes':'#92610e','Gradient Boosting':'#b91c1c'} %}
+    {% set model_icons  = {'Random Forest':'fa-tree','KNN':'fa-network-wired','SVM':'fa-border-none','Naive Bayes':'fa-bahai','Gradient Boosting':'fa-chart-line'} %}
+    {% set model_descs  = {
+      'Random Forest':     'Ensemble of decision trees — handles non-linear patterns and feature correlations well.',
+      'SVM':               'Maximum-margin classifier — excels on high-dimensional sparse symptom vectors.',
+      'Naive Bayes':       'Probabilistic baseline — surprisingly strong on severity-weighted symptom features.',
+      'KNN':               'Instance-based learning — useful for local patterns but slower at inference.',
+      'Gradient Boosting': 'Sequential boosting — powerful but not in ensemble due to overfitting risk on this dataset.'
+    } %}
+    {% set in_ensemble = {'Random Forest':'50%','SVM':'35%','Naive Bayes':'15%'} %}
+    {% for m in metrics %}
+    {% set cv    = m.get('CV Mean', 0) %}
+    {% set std   = m.get('CV Std', 0) %}
+    {% set acc   = m['Test Accuracy'] %}
+    {% set raw_note = m.get('Note', '') %}
+    {% set note  = '' if (raw_note is none or raw_note != raw_note or raw_note|string in ('nan','None','')) else raw_note|string %}
+    {% set color = model_colors.get(m['Model'], '#0a5c48') %}
+    {% set icon  = model_icons.get(m['Model'],  'fa-robot') %}
+    {% set desc  = model_descs.get(m['Model'],  '') %}
+    {% set weight = in_ensemble.get(m['Model'], '') %}
+    <div class="an-model-card">
+      <div class="an-mc-head">
+        <div class="an-mc-icon" style="background:{{ color }}20;color:{{ color }}">
+          <i class="fas {{ icon }}"></i>
+        </div>
+        <div class="an-mc-name-wrap">
+          <span class="an-mc-name">{{ m['Model'] }}</span>
+          <div class="an-mc-badges">
+            {% if weight %}
+            <span class="badge badge-green">Ensemble {{ weight }}</span>
+            {% else %}
+            <span class="badge badge-amber">Standalone</span>
+            {% endif %}
+            {% if cv >= 0.97 %}<span class="badge badge-green">Excellent</span>
+            {% elif cv >= 0.90 %}<span class="badge badge-green">Good</span>
+            {% elif cv >= 0.80 %}<span class="badge badge-amber">Fair</span>
+            {% else %}<span class="badge badge-violet">Average</span>{% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="an-mc-cv">{{ "%.4f"|format(cv) }}</div>
+      <div class="an-mc-cv-lbl">10-fold CV Mean Accuracy</div>
+
+      <div class="an-mc-track">
+        <div class="an-mc-bar" style="width:0%;background:{{ color }}" data-w="{{ (cv*100)|round(1) }}"></div>
+      </div>
+
+      <div class="an-mc-row">
+        <span>Test Accuracy</span>
+        <strong style="color:var(--text-1)">{{ "%.4f"|format(acc) }}</strong>
+      </div>
+      <div class="an-mc-row">
+        <span>CV Std Dev</span>
+        <strong>±{{ "%.4f"|format(std) }}</strong>
+      </div>
+      {% if note %}
+      <div class="an-mc-note"><i class="fas fa-circle-info"></i> {{ note }}</div>
+      {% endif %}
+      {% if desc %}
+      <p class="an-mc-desc">{{ desc }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {# ── Full metrics table ────────────────────────────────────── #}
+  {% if metrics %}
+  <div class="section-head"><div class="section-bar"></div><h2>Full Metrics Comparison</h2></div>
+
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:2rem">
+    <div class="an-table-note">
+      <i class="fas fa-flask"></i>
+      <span>10-fold stratified cross-validation on 4,920 training records. Deployment models are trained on the full dataset for maximum symptom coverage. Ensemble combines RF (50%) + SVM (35%) + NB (15%).</span>
+    </div>
+    <div class="table-overflow">
+      <table class="metrics-table">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Test Accuracy</th>
+            <th>F1 Score</th>
+            <th>CV Mean</th>
+            <th>CV Std</th>
+            <th>Ensemble</th>
+            <th>Rating</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% set ensemble_weights = {'Random Forest':'50%','SVM':'35%','Naive Bayes':'15%'} %}
+          {% for m in metrics %}
+          {% set acc = m['Test Accuracy'] %}
+          {% set f1  = m.get('F1 Score', acc) %}
+          {% set cv  = m.get('CV Mean', acc) %}
+          {% set std = m.get('CV Std', 0) %}
+          {% set raw_note = m.get('Note','') %}
+          {% set note = '' if (raw_note is none or raw_note != raw_note or raw_note|string in ('nan','None','')) else raw_note|string %}
+          {% set color = model_colors.get(m['Model'], '#0a5c48') %}
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <span style="width:8px;height:8px;border-radius:50%;background:{{ color }};flex-shrink:0;display:inline-block"></span>
+                <span style="font-weight:600">{{ m['Model'] }}</span>
+                {% if note %}<i class="fas fa-circle-info" style="color:var(--amber);font-size:.72rem" title="{{ note }}"></i>{% endif %}
+              </div>
+            </td>
+            <td>
+              <div class="bar-cell">
+                <div class="bar-track"><div class="bar-fill" style="width:{{ (acc*100)|round(1) }}%;background:var(--green)"></div></div>
+                <span style="font-family:var(--font-display);font-weight:700;color:var(--text-1)">{{ "%.4f"|format(acc) }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="bar-cell">
+                <div class="bar-track"><div class="bar-fill" style="width:{{ (f1*100)|round(1) }}%;background:var(--amber)"></div></div>
+                <span style="font-family:var(--font-display);font-weight:700;color:var(--text-1)">{{ "%.4f"|format(f1) }}</span>
+              </div>
+            </td>
+            <td style="font-family:var(--font-display);font-weight:700;color:var(--text-1)">{{ "%.4f"|format(cv) }}</td>
+            <td style="color:var(--text-3)">±{{ "%.4f"|format(std) }}</td>
+            <td style="text-align:center">
+              {% if m['Model'] in ensemble_weights %}
+              <span class="badge badge-green">{{ ensemble_weights[m['Model']] }}</span>
+              {% else %}
+              <span style="color:var(--text-3);font-size:.8rem">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if cv >= 0.97 %}<span class="badge badge-green">Excellent</span>
+              {% elif cv >= 0.90 %}<span class="badge badge-green">Good</span>
+              {% elif cv >= 0.80 %}<span class="badge badge-amber">Fair</span>
+              {% else %}<span class="badge badge-violet">Average</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Training visualisations ───────────────────────────────── #}
+  <div class="section-head"><div class="section-bar"></div><h2>Training Visualisations</h2></div>
+
+  {% set graph_groups = [
+    ('Dataset & Features', [
+      ('disease_distribution.png', 'Disease Distribution',  'Training sample count per disease — 120 rows each.',              'var(--green)',  'fa-chart-bar'),
+      ('top_symptoms.png',         'Top 25 Symptoms',       'Most frequently occurring symptoms in training data.',             'var(--amber)',  'fa-ranking-star'),
+      ('symptom_severity.png',     'Severity Weights',      'Top 30 symptoms ranked by clinical severity score (1–7).',        'var(--coral)',  'fa-weight-hanging'),
+    ]),
+    ('Model Performance', [
+      ('model_comparison.png',   'Model Comparison',   'Test accuracy, F1, and 10-fold CV scores side by side.',             'var(--violet)',  'fa-chart-column'),
+      ('cv_boxplot.png',         'CV Distribution',    'Cross-validation score spread — real variance per model.',            'var(--green-2)', 'fa-box-open'),
+      ('per_class_accuracy.png', 'Per-Disease F1',     'F1-score for every individual disease class.',                       'var(--green)',   'fa-bullseye'),
+    ]),
+    ('Diagnostics', [
+      ('confusion_matrix.png',   'Confusion Matrix',   'Per-disease prediction accuracy — which diseases get confused.',     'var(--coral)',  'fa-grid-2'),
+      ('feature_importance.png', 'Feature Importance', 'Top 20 symptoms by Random Forest importance weight.',                'var(--amber)',  'fa-arrow-up-wide-short'),
+      ('severity_impact.png',    'Severity Impact',    'Severity weight distribution and model accuracy overview.',          'var(--violet)', 'fa-chart-line'),
+    ]),
+  ] %}
+
+  {% for group_name, group_graphs in graph_groups %}
+  {% set has_any = namespace(val=false) %}
+  {% for fname, title, desc, color, icon in group_graphs %}{% if fname in graphs %}{% set has_any.val = true %}{% endif %}{% endfor %}
+  {% if has_any.val %}
+  <div class="an-graph-group">
+    <div class="an-graph-group-label"><i class="fas fa-folder-open"></i> {{ group_name }}</div>
+    <div class="graph-grid">
+      {% for fname, title, desc, color, icon in group_graphs %}
+      {% if fname in graphs %}
+      <div class="graph-card" onclick="openModal('{{ fname }}','{{ title }}','{{ desc }}')">
+        <div class="graph-card-head">
+          <div class="graph-dot" style="background:{{ color }}"></div>
+          <h3>{{ title }}</h3>
+        </div>
+        <img src="{{ url_for('serve_graph', filename=fname) }}" alt="{{ title }}" loading="lazy"/>
+        <div class="graph-card-foot">
+          <span style="color:var(--text-3);font-size:.78rem">{{ desc }}</span>
+          <span style="font-size:.78rem;color:var(--green)"><i class="fas fa-expand"></i> Expand</span>
+        </div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+
+</div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3 id="modalTitle"></h3>
+        <p id="modalDesc" style="font-size:.8rem;color:var(--text-3);margin-top:.2rem"></p>
+      </div>
+      <div class="modal-close" onclick="closeModal()"><i class="fas fa-xmark"></i></div>
+    </div>
+    <img id="modalImg" src="" alt=""/>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+function openModal(fname, title, desc) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalDesc').textContent  = desc || '';
+  document.getElementById('modalImg').src = '/graphs/' + fname;
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modalOverlay') ||
+      e.currentTarget?.classList.contains('modal-close'))
+    document.getElementById('modalOverlay').classList.remove('show');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('modalOverlay').classList.remove('show'); });
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.an-mc-bar').forEach(b => {
+    const w = b.dataset.w;
+    setTimeout(() => { b.style.width = w + '%'; }, 300);
+  });
+});
+</script>
+{% endblock %}
